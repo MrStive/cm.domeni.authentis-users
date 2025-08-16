@@ -1,0 +1,67 @@
+---
+openapi: "3.0.3"
+info:
+  title: "cm.domeni.authentis-users"
+  description: "Demo use open APi for generate REST API endpoints"
+  version: "0.0.1"
+servers:
+- url: "https"
+- url: "http"
+paths:
+  /demo:
+    get:
+      tags:
+      - "Demo"
+      summary: "Demo Summary"
+      description: "Demo Description"
+      operationId: "fetchAllDemo"
+      security:
+      - bearerAuth: []
+      responses:
+        "200":
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/DemoDTO"
+        "401":
+          description: "Unauthorized"
+    post:
+      tags:
+      - "Demo"
+      summary: "Create a new Demo"
+      description: "Creates a new Demo with the provided data"
+      operationId: "createDemo"
+      security:
+      - bearerAuth: []
+      requestBody:
+        description: "Demo object to be created"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemoDTO"
+      responses:
+        "201":
+          description: "Demo created successfully"
+          content:
+            application/json:
+              schema:
+                type: "string"
+                format: "uuid"
+        "400":
+          description: "Invalid input"
+        "401":
+          description: "Unauthorized"
+components:
+  schemas:
+    DemoDTO:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+        name:
+          type: "string"
