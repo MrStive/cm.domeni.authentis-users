@@ -3,9 +3,9 @@ spring:
   application:
     name: "authentis-users"
   datasource:
-    url: "jdbc:postgresql://localhost:5432/test_db"
-    username: "domeni.ngameni"
-    password: "test_pass"
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:authentis-users-db}"
+    username: "${DB_USER:domeni.ngameni}"
+    password: "${DB_PASSWORD:authentis-users-password}"
   jpa:
     hibernate:
       ddl-auto: "update"
