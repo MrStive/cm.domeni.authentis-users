@@ -1,0 +1,678 @@
+openapi: 3.0.3
+info:
+  title: UUM REST API
+  description: API Documentation
+  license:
+    name: License of API
+    url: https://
+  version: 2024-W24
+servers:
+  - url: 'https'
+  - url: 'http'
+tags:
+  - name: User
+    description: Everything about the users
+paths:
+  /data-migration/user:
+    post:
+      tags:
+        - User
+      summary: Copy data user from keyclock
+      description: Copy data user from keyclock
+      operationId: copyUserDataFromKeycloack
+      security:
+        - oAuth:
+            - user:read
+      responses:
+        204:
+          description: successful operation
+  /user:
+    post:
+      tags:
+        - User
+      summary: add a new user
+      description: add a new user
+      operationId: createUser
+      security:
+        - oAuth:
+            - user:create
+      requestBody:
+        description: User object that need to be add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UumUserDTO'
+      responses:
+        201:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        409:
+          description: UUM-3001
+    get:
+      tags:
+        - User
+      summary: Fetch all users
+      description: Fetch all users
+      operationId: getAllUsers
+      security:
+        - oAuth:
+            - user:read
+      parameters:
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+            description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UumUserDTO'
+
+  /user/{username}/validation/{code}:
+    post:
+      tags:
+        - User
+      summary: validate user by username with the code
+      description: validate user by username with the code
+      operationId: validateUser
+      security:
+        - oAuth:
+            - user:read
+      parameters:
+        - name: username
+          in: path
+          description: username of user to be validate
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: specify the code of validation
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: false
+                description: state of role
+                enum:
+                  - CodeOK
+                  - CodeWrong
+                  - CodeExpired
+  /user/is-already-registered/{username}:
+    get:
+      tags:
+        - User
+      summary: check if a user with the corresponding username already exists.
+      description: check if a user with the corresponding username already exists.
+      operationId:  checkExistUser
+      security:
+        - oAuth:
+            - user:read
+      parameters:
+        - name: username
+          in: path
+          description: User username to be check
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: successful operation
+        404:
+          description: UUM-4002
+  /user/generate-and-send-new-confirmation-code/{username}:
+    get:
+      tags:
+        - User
+      summary: Request a new confirmation code
+      description: Request a new confirmation code
+      operationId: Request a new confirmation code
+      security:
+        - oAuth:
+            - user:read
+      parameters:
+        - name: username
+          in: path
+          description: User username to be check
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: successful operation
+        404:
+          description: UUM-4002
+  /user/{id}:
+    get:
+      tags:
+        - User
+      summary: Finds user by id
+      description: Finds user by id
+      operationId: getUserById
+      security:
+        - oAuth:
+            - user:read
+      parameters:
+        - name: id
+          in: path
+          description: User id to be fetch
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UumUserDTO'
+        404:
+          description: UUM-4002
+    delete:
+      tags:
+        - User
+      summary: Delete user by id
+      description: Delete user found by provided id
+      operationId: deleteUser
+      security:
+        - oAuth:
+            - user:delete
+      parameters:
+        - name: id
+          in: path
+          description: User id to be fetch
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: successful operation
+        404:
+          description: UUM-4002
+    put:
+      tags:
+        - User
+      summary: Update user by id
+      description: Update user found by provided id
+      operationId: updateUser
+      security:
+        - oAuth:
+            - user:update
+      parameters:
+        - name: id
+          in: path
+          description: User id to be update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: User object that need to be update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UumUserDTO'
+      responses:
+        204:
+          description: successful operation
+        404:
+          description: UUM-4002
+  /user/additional-info:
+    get:
+      tags:
+        - User
+      summary: Finds current user additional information
+      description: Contains all information not present in keycloak
+      operationId: getUserAdditionalInfo
+      security:
+        - oAuth:
+            - user:read
+      parameters:
+        - name: fieldsToExtractCode
+          in: query
+          required: false
+          schema:
+            type: string
+            description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UumUserDTO'
+        404:
+          description: UUM-4002
+  /user/{id}/activate:
+    put:
+      tags:
+        - User
+      summary: Activate user identified by id
+      description: Activate user identified by id
+      operationId: activateUser
+      security:
+        - oAuth:
+            - user:edit
+      parameters:
+        - name: id
+          in: path
+          description: id of the user to be activate
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: successful operation
+        404:
+          description: UUM-4002
+  /user/{id}/deactivate:
+    put:
+      tags:
+        - User
+      summary: Deactivate user identified by id
+      description: Deactivate user identified by id
+      operationId: deactivateUser
+      security:
+        - oAuth:
+            - user:edit
+      parameters:
+        - name: id
+          in: path
+          description: id of the user to be deactivate
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: successful operation
+        404:
+          description: UUM-4002
+  /user/reset-password:
+    put:
+      tags:
+        - User
+      summary: Reset user's password
+      description: Reset user's password
+      operationId: resetUserPassword
+      security:
+        - oAuth:
+            - user:edit
+      requestBody:
+        description: User's structure to reset password
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordDTO'
+      responses:
+        204:
+          description: successful operation
+        404:
+          description: UUM-4002
+  /user/{id}/role:
+    get:
+      tags:
+        - User
+      summary: Fetch all roles by user
+      description: Fetch all roles by user
+      operationId: fetchRolesByUserId
+      security:
+        - oAuth:
+            - user:read
+      parameters:
+        - name: id
+          in: path
+          description: User id to be fetch
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleDTO'
+        404:
+          description: UUM-4002
+    put:
+      tags:
+        - User
+      summary: Add roles to a user
+      description: Add roles to a user
+      operationId: addRolesToUser
+      security:
+        - oAuth:
+            - user:edit
+      parameters:
+        - name: id
+          in: path
+          description: id of the user to assign the role
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: The list of Roles to add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleToUserDTO'
+      responses:
+        204:
+          description: successful operation
+        404:
+          description: UUM-4001 | UUM-4002
+  /user/{id}/role/{roleId}:
+    delete:
+      tags:
+        - User
+      summary: Remove roles to a user
+      description: Remove roles  to a user
+      operationId: removeRolesToUser
+      security:
+        - oAuth:
+            - user:edit
+      parameters:
+        - name: id
+          in: path
+          description: id of the user to remove the role
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: roleId
+          in: path
+          description: id of the role to remove
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        204:
+          description: successful operation
+        404:
+          description: UUM-4001 | UUM-4002
+  /client/{clientName}/role:
+    get:
+      tags:
+        - Client
+      summary: Fetch roles by clientName
+      description: Fetch roles by clientName
+      operationId: fetchRolesByClientName
+      security:
+        - oAuth:
+            - client:read
+      parameters:
+        - name: clientName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleDTO'
+        404:
+          description: UUM-4003
+  /role:
+    get:
+      tags:
+        - Role
+      summary: Fetch all roles
+      description: Fetch all roles
+      operationId: getAllRoles
+      security:
+        - oAuth:
+            - role:read:all
+      parameters:
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+            description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleDTO'
+  /scheduler/{name}/activate:
+    put:
+      tags:
+        - Scheduler
+      summary: Activate a scheduler by name
+      description: Activate a scheduler by name
+      operationId: activateScheduler
+      security:
+        - oAuth:
+            - scheduler:edit
+      parameters:
+        - name: name
+          description: scheduler's name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+  /scheduler/{name}/deactivate:
+    put:
+      tags:
+        - Scheduler
+      summary: Deactivate a scheduler by name
+      description: Deactivate a scheduler by name
+      operationId: deactivateScheduler
+      security:
+        - oAuth:
+            - scheduler:edit
+      parameters:
+        - name: name
+          description: scheduler's name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+components:
+  securitySchemes:
+    oAuth:
+      type: oauth2
+      description: This API uses OAuth 2 with the Authorization Code grant flow.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.oauth.lao-sarl.cm
+          tokenUrl: https://token.oauth.lao-sarl.cm
+          scopes:
+            user:create: create a user
+            user:edit: Add User to role
+            user:read: Fetch the User
+            user:delete: Delete user
+  schemas:
+    EmailAddressDTO:
+      type: object
+      properties:
+        email:
+          type: string
+          description: value of the email address
+    PhoneNumberDTO:
+      type: object
+      properties:
+        countryCode:
+          type: string
+          description: the international code for the country
+          example: 237 for Cameroon
+        number:
+          type: string
+          description: the phone number
+          example: 653492410
+    CivilityDTO:
+      type: string
+      enum:
+        - MISTER
+        - MADAM
+    UumUserDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          description: identifier
+          format: uuid
+        civility:
+          $ref: '#/components/schemas/CivilityDTO'
+        firstname:
+          type: string
+          description: firstname of user
+        lastName:
+          type: string
+          description: lastname of user
+        phoneNumber:
+          $ref: '#/components/schemas/PhoneNumberDTO'
+        username:
+          type: string
+          description: username's user
+        password:
+          type: string
+          description: password's user
+        email:
+          $ref: '#/components/schemas/EmailAddressDTO'
+        enabled:
+          type: boolean
+          description: active user
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleDTO'
+        registration:
+          $ref: '#/components/schemas/RegistrationDTO'
+        profile:
+          type: string
+          description: user's information
+        roleIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    RoleDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          description: identifier
+          format: uuid
+        name:
+          type: string
+          description: name's role
+        description:
+          type: string
+          description: description of role
+    RegistrationDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          description: identifier
+          format: uuid
+        createdAt:
+          type: string
+          format: date
+          description: creation's date
+        state:
+          $ref: '#/components/schemas/StateDTO'
+        scheme:
+          $ref: '#/components/schemas/SchemeDTO'
+    StateDTO:
+      type: string
+      nullable: false
+      description: state of role
+      enum:
+        - RUNNING
+        - CONFIRMED
+        - CANCELED
+    SchemeDTO:
+      type: string
+      nullable: false
+      description: state of role
+      enum:
+        - MANUAL_BY_ADMIN
+        - SMS
+        - NO_VALIDATION
+    ResetPasswordDTO:
+      type: object
+      required:
+        - userId
+        - newPassword
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: User's id to update its password
+        newPassword:
+          type: string
+    AssignRoleToUserDTO:
+      type: object
+      required:
+        - roleIds
+      properties:
+        roleIds:
+          type: array
+          items:
+            type: string
+            format: uuid
