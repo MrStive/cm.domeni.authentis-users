@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: authentis-users-postgres
+    environment:
+      POSTGRES_DB: authentis-users-db
+      POSTGRES_USER: domeni.ngameni
+      POSTGRES_PASSWORD: authentis-users-password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U domeni.ngameni -d authentis-users-db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgres
+      DB_DATABASE: authentis-users-db
+      DB_USER: domeni.ngameni
+      DB_PASSWORD: authentis-users-password
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: authentis-users-password
+      KC_HTTP_ENABLED: "false"
+    ports:
+      - "8280:8280"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: start-dev --http-enabled=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8280"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+networks:
+  keycloak-network:
+    driver: bridge

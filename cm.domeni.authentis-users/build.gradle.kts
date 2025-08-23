@@ -10,12 +10,18 @@ buildscript {
 }
 plugins {
     java
+    id("application")
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.openapi.generator") version "7.11.0"
     id("com.google.cloud.tools.jib") version "3.4.4"
     id("com.diffplug.spotless") version "6.25.0" apply true
     id("net.ltgt.errorprone") version "3.1.0"
+    id("com.avast.gradle.docker-compose") version "0.16.11"
+}
+
+application {
+    mainClass = "cm/domeni/authentis_users/AuthentisUsersApplication.java"
 }
 
 group = "cm.domeni.authentis-users"
@@ -92,8 +98,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webflux")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
 
+    testImplementation("com.h2database:h2")
     testImplementation("io.rest-assured:rest-assured:5.3.2")
+    implementation("org.keycloak:keycloak-admin-client:25.0.1")
     testImplementation("io.rest-assured:spring-mock-mvc:5.4.0")
+    implementation("org.awaitility:awaitility:4.2.0")
 }
 
 tasks.named<JavaCompile>("compileJava") {
@@ -159,18 +168,19 @@ interface InjectedExecOps {
     @get:Inject val execOps: ExecOperations
 }
 
-tasks.register<GenerateTask>("mainOpenApiGenerate") {
-    generatorName = "spring"
-    templateDir = "$rootDir/openapi/templates/spring-boot"
-    inputSpec = "$rootDir/openapi/main.yaml"
-    outputDir =
+tasks.named<GenerateTask>("openApiGenerate") {
+    generatorName.set("spring")
+    templateDir.set("$rootDir/openapi/templates/spring-boot")
+    inputSpec.set("$rootDir/openapi/main.yaml")
+    outputDir.set(
         layout.buildDirectory
             .dir("generated/sources/openapi")
             .get()
-            .asFile.path
-    apiPackage = "cm.domeni.authentis_user.api"
-    modelPackage = "cm.domeni.authentis_user.dto"
-    configOptions =
+            .asFile.path,
+    )
+    apiPackage.set("cm.domeni.authentis_user.api")
+    modelPackage.set("cm.domeni.authentis_user.dto")
+    configOptions.set(
         mapOf(
             "dateLibrary" to "java8-localdatetime",
             "library" to "spring-boot",
@@ -178,11 +188,13 @@ tasks.register<GenerateTask>("mainOpenApiGenerate") {
             "useTags" to "true",
             "skipDefaultInterface" to "true",
             "useSpringBoot3" to "true",
-        )
-    typeMappings =
+        ),
+    )
+    typeMappings.set(
         mapOf(
             "time" to "java.time.LocalTime",
-        )
+        ),
+    )
     val generatedSourceCodeDir = file(outputDir.get() + "/src/main/java/cm/domeni/authentis-users")
     doFirst {
         generatedSourceCodeDir.deleteRecursively()
@@ -195,7 +207,7 @@ tasks.register<GenerateTask>("mainOpenApiGenerate") {
 }
 
 tasks.compileJava.get().dependsOn(
-    tasks["mainOpenApiGenerate"],
+    tasks["openApiGenerate"],
 )
 
 sourceSets.main
@@ -263,4 +275,15 @@ spotless {
         gherkinUtils()
             .version("9.0.0")
     }
+}
+dockerCompose {
+    useComposeFiles.set(listOf("docker-compose.yml"))
+    stopContainers.set(true)
+    removeVolumes.set(false)
+    waitForTcpPorts.set(true)
+}
+
+tasks.named("run") {
+    dependsOn("composeUp")
+    finalizedBy("composeDown")
 }

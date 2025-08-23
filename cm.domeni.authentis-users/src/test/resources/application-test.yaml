@@ -1,0 +1,8 @@
+---
+spring:
+  datasource:
+    url: "jdbc:tc:postgresql:13:///myappdb?TC_INITSCRIPT=init.sql"
+  docker:
+    compose:
+      enabled: true
+      file: "docker-compose.yml"
