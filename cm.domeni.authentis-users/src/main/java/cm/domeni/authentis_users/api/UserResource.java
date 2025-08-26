@@ -17,15 +17,14 @@ import java.util.UUID;
 public class UserResource implements UserApi {
   private final UserService userService;
 
-    @Override
-    public ResponseEntity<List<UserDTO>> fetchAllUsers() {
-        return ResponseEntity.ok(userService.fetchAllUsers());
-    }
+  @Override
+  public ResponseEntity<List<UserDTO>> fetchAllUsers() {
+    return ResponseEntity.ok(userService.fetchAllUsers());
+  }
 
-    @Override
+  @Override
   public ResponseEntity<UUID> register(CreateUser createUser) {
     UUID createdUserId = userService.createUser(createUser);
     return ResponseEntity.status(HttpStatus.CREATED).body(createdUserId);
   }
-
 }

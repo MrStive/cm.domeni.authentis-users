@@ -2,11 +2,11 @@ package cm.domeni.authentis_users.service;
 
 import cm.domeni.authentis_user.dto.CreateUser;
 import cm.domeni.authentis_user.dto.UserDTO;
-import cm.domeni.authentis_users.domain.user.User;
 import cm.domeni.authentis_users.domain.user.UserFactory;
 import cm.domeni.authentis_users.domain.user.UserFetcher;
 import cm.domeni.authentis_users.domain.user.UserId;
-import cm.domeni.authentis_users.infrastructure.keycloak.KeycloakService;
+import cm.domeni.authentis_users.exception.UserAlreadyExistException;
+import cm.domeni.authentis_users.exception.UserCanNotCreateException;
 import cm.domeni.authentis_users.service.mapper.UserMapper;
 import java.util.List;
 import java.util.Optional;
@@ -21,19 +21,14 @@ public class UserService {
   private final UserFactory userFactory;
   private final UserFetcher userFetcher;
   private final UserMapper userMapper;
-  private final KeycloakService keycloakService;
 
   @Transactional
-  public UUID createUser(CreateUser data) {
-    String keycloakId = keycloakService.createUser(data);
-    UserId userId = new UserId(keycloakId);
-    return Optional.ofNullable(data)
-        .map(userMapper::map)
-        .map(userData -> userFactory.create(userId, userData))
-        .map(User::getId)
-        .map(UserId::getValue)
-        .map(UUID::fromString)
-        .orElseThrow();
+  public UUID createUser(CreateUser userData) {
+    try {
+      return userFactory.create(userMapper.map(userData)).getId().toUuid();
+    } catch (UserAlreadyExistException | UserCanNotCreateException e) {
+      throw new RuntimeException("Unexpected error creating user in server");
+    }
   }
 
   @Transactional(readOnly = true)

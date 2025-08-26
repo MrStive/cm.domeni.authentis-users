@@ -1,10 +1,10 @@
 package cm.domeni.authentis_users.exception;
 
-public class UserAlreadyExistException extends Exception {
-  private String message;
+import lombok.Getter;
 
+@Getter
+public class UserAlreadyExistException extends DomainException {
   public UserAlreadyExistException(String message) {
     super(message);
-    this.message = message;
   }
 }
