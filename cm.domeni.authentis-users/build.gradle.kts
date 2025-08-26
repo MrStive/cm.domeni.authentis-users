@@ -14,7 +14,7 @@ plugins {
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.openapi.generator") version "7.11.0"
-    id("com.google.cloud.tools.jib") version "3.4.4"
+    id("com.google.cloud.tools.jib") version "3.4.5"
     id("com.diffplug.spotless") version "6.25.0" apply true
     id("net.ltgt.errorprone") version "3.1.0"
     id("com.avast.gradle.docker-compose") version "0.16.11"
@@ -205,9 +205,43 @@ tasks.named<GenerateTask>("openApiGenerate") {
             file(templateDir.get()).lastModified() > generatedSourceCodeDir.lastModified()
     }
 }
+tasks.register<GenerateTask>("keycloakOpenApiGenerate") {
+    generatorName = "spring"
+    templateDir = "$rootDir/openapi/templates/spring-http-interface"
+    inputSpec = "$rootDir/openapi/keycloak.yaml"
+    outputDir =
+        layout.buildDirectory
+            .dir("generated/sources/openapi")
+            .get()
+            .asFile.path
+    apiPackage = "cm.domeni.authentis_users.keycloak.api"
+    modelPackage = "cm.domeni.authentis_users.keycloak.dto"
+    modelNamePrefix = "Uum"
+    configOptions =
+        mapOf(
+            "dateLibrary" to "java8-localdatetime",
+            "library" to "spring-http-interface",
+            "interfaceOnly" to "true",
+            "useTags" to "true",
+        )
+    typeMappings =
+        mapOf(
+            "time" to "java.time.LocalTime",
+        )
+    val generatedSourceCodeDir = file(outputDir.get() + "/src/main/java/cm/domeni.authentis_users/keycloak")
+    doFirst {
+        generatedSourceCodeDir.deleteRecursively()
+    }
+    onlyIf {
+        !generatedSourceCodeDir.exists() ||
+            file(inputSpec.get()).lastModified() > generatedSourceCodeDir.lastModified() ||
+            file(templateDir.get()).lastModified() > generatedSourceCodeDir.lastModified()
+    }
+}
 
 tasks.compileJava.get().dependsOn(
     tasks["openApiGenerate"],
+    tasks["keycloakOpenApiGenerate"],
 )
 
 sourceSets.main

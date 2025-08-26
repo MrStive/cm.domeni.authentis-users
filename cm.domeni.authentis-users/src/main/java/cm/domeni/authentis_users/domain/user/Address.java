@@ -1,12 +1,11 @@
 package cm.domeni.authentis_users.domain.user;
 
 import jakarta.persistence.Embeddable;
+import java.io.Serializable;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.io.Serializable;
-import java.util.Objects;
 
 @Getter
 @Setter

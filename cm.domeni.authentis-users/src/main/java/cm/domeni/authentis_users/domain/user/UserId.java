@@ -24,7 +24,7 @@ public class UserId implements Serializable {
     this.value = userId.toString();
   }
 
-  public UUID toUuid(String value) {
+  public UUID toUuid() {
     return UUID.fromString(value);
   }
 

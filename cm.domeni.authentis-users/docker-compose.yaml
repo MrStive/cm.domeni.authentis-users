@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:17.6
@@ -31,7 +29,7 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: authentis-users-password
       KC_HTTP_ENABLED: "false"
     ports:
-      - "8280:8280"
+      - "8085:8085"
     depends_on:
       postgres:
         condition: service_healthy

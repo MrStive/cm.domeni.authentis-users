@@ -5,7 +5,7 @@ info:
 
 servers:
   - url: "http://localhost:8080/admin/realms/ecommerce-reaml"
-    description: "user management"
+    description: "authenticate admin"
   - url: "http://localhost:8080/realms/ecommerce-reaml"
     description: "authenticate client"
 
