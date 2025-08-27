@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface KeycloakGateway {
   Optional<String> createUser(UserData createUser)
       throws UserAlreadyExistException, UserCanNotCreateException;
+
+  void deleteUser(String userId);
 }
