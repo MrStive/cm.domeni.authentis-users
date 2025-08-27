@@ -13,7 +13,14 @@ public class UserFactoryImpl implements UserFactory {
 
   @Override
   public User create(UserData data) throws UserAlreadyExistException, UserCanNotCreateException {
-    String userId = keycloakGateway.createUser(data).orElseThrow();
+    String userId =
+        keycloakGateway
+            .createUser(data)
+            .orElseThrow(
+                () ->
+                    new UserCanNotCreateException(
+                        "Failed to create user in Keycloak, received no ID.", null));
+
     var user = User.builder().id(new UserId(userId)).build();
     user.setUserName(data.userName());
     user.setEmail(data.email());
@@ -22,6 +29,15 @@ public class UserFactoryImpl implements UserFactory {
     user.setLastName(data.lastName());
     user.setBirthDate(data.birthDate());
     user.setAddress(data.address());
-    return userRepository.save(user);
+
+    try {
+      return userRepository.save(user);
+    } catch (Exception e) {
+      keycloakGateway.deleteUser(userId);
+      throw new UserCanNotCreateException(
+          "Failed to save user to local database after creating it in Keycloak. Compensating action"
+              + " was triggered.",
+          e);
+    }
   }
 }

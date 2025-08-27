@@ -1,10 +1,12 @@
 package cm.domeni.authentis_users.exception;
 
-public class UserCanNotCreateException extends Exception {
-  private String message;
+public class UserCanNotCreateException extends RuntimeException {
 
-  public UserCanNotCreateException(String message, Exception e) {
+  public UserCanNotCreateException(String message) {
     super(message);
-    this.message = message;
+  }
+
+  public UserCanNotCreateException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

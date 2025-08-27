@@ -52,6 +52,7 @@ dependencyManagement {
 dependencies {
     compileOnly("jakarta.servlet:jakarta.servlet-api:6.0.0")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.cloud:spring-cloud-starter")
@@ -98,9 +99,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webflux")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
 
-    testImplementation("com.h2database:h2")
     testImplementation("io.rest-assured:rest-assured:5.3.2")
-    implementation("org.keycloak:keycloak-admin-client:25.0.1")
     testImplementation("io.rest-assured:spring-mock-mvc:5.4.0")
     implementation("org.awaitility:awaitility:4.2.0")
 }
@@ -216,7 +215,7 @@ tasks.register<GenerateTask>("keycloakOpenApiGenerate") {
             .asFile.path
     apiPackage = "cm.domeni.authentis_users.keycloak.api"
     modelPackage = "cm.domeni.authentis_users.keycloak.dto"
-    modelNamePrefix = "Uum"
+    modelNamePrefix = "keyCloak"
     configOptions =
         mapOf(
             "dateLibrary" to "java8-localdatetime",
