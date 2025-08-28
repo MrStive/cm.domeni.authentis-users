@@ -213,8 +213,8 @@ tasks.register<GenerateTask>("keycloakOpenApiGenerate") {
             .dir("generated/sources/openapi")
             .get()
             .asFile.path
-    apiPackage = "cm.domeni.authentis_users.keycloak.api"
-    modelPackage = "cm.domeni.authentis_users.keycloak.dto"
+    apiPackage = "cm.domeni.keycloak.api"
+    modelPackage = "cm.domeni.keycloak.dto"
     modelNamePrefix = "keyCloak"
     configOptions =
         mapOf(

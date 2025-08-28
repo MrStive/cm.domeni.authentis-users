@@ -4,11 +4,12 @@ import cm.domeni.authentis_user.dto.DemoDTO;
 import cm.domeni.authentis_users.domain.demo.Demo;
 import cm.domeni.authentis_users.domain.demo.DemoData;
 import cm.domeni.authentis_users.domain.demo.DemoName;
-import java.util.Optional;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+
+import java.util.Optional;
 
 @Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface DemoMapper {

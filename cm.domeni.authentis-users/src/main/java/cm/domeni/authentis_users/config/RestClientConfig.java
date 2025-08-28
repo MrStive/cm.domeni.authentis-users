@@ -1,7 +1,7 @@
 package cm.domeni.authentis_users.config;
 
 import cm.domeni.authentis_users.external.http.RestClientFactory;
-import cm.domeni.authentis_users.keycloak.api.KeycloakAdminUserApi;
+import cm.domeni.keycloak.api.UsersApi;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,10 +27,10 @@ public class RestClientConfig {
   }
 
   @Bean
-  public KeycloakAdminUserApi keycloakAdminUserApi(
+  public UsersApi keycloakAdminUserApi(
       @Qualifier(KEYCLOAK_ADMIN_REST_CLIENT) RestClient restClient) {
     HttpServiceProxyFactory factory =
         HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build();
-    return factory.createClient(KeycloakAdminUserApi.class);
+    return factory.createClient(UsersApi.class);
   }
 }
