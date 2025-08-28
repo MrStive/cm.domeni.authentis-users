@@ -3,13 +3,12 @@ package cm.domeni.authentis_users.api;
 import cm.domeni.authentis_users.dto.CreateUser;
 import cm.domeni.authentis_users.dto.UserDTO;
 import cm.domeni.authentis_users.service.UserService;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor

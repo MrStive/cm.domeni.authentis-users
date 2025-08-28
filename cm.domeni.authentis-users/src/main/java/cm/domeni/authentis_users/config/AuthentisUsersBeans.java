@@ -5,6 +5,8 @@ import cm.domeni.authentis_users.domain.demo.DemoFetcher;
 import cm.domeni.authentis_users.domain.demo.DemoRepository;
 import cm.domeni.authentis_users.domain.demo.impl.DemoFactoryImpl;
 import cm.domeni.authentis_users.domain.demo.impl.DemoFetcherImpl;
+import cm.domeni.authentis_users.domain.role.RoleFactory;
+import cm.domeni.authentis_users.domain.role.imp.RoleFactoryImpl;
 import cm.domeni.authentis_users.domain.user.UserFactory;
 import cm.domeni.authentis_users.domain.user.UserFetcher;
 import cm.domeni.authentis_users.domain.user.UserRepository;
@@ -51,5 +53,10 @@ public class AuthentisUsersBeans {
   @Bean
   public UserFetcher userFetcher(UserRepository userRepository) {
     return new UserFetcherImpl(userRepository);
+  }
+
+  @Bean
+  public RoleFactory roleFactory(KeycloakGateway keycloakGateway) {
+    return new RoleFactoryImpl(keycloakGateway);
   }
 }
