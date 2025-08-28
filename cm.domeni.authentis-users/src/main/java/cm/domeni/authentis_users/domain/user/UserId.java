@@ -37,7 +37,7 @@ public class UserId implements Serializable {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (o == null || !(o instanceof UserId)) {
       return false;
     }
     UserId userId = (UserId) o;

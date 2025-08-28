@@ -1,36 +1,23 @@
 package cm.domeni.authentis_users.config;
 
-import cm.domeni.authentis_users.external.http.RestClientFactory;
-import cm.domeni.keycloak.api.UsersApi;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl; // Added import
+import org.keycloak.OAuth2Constants;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.support.RestClientAdapter;
-import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 @Configuration
 public class RestClientConfig {
-
-  public static final String KEYCLOAK_ADMIN_REST_CLIENT = "keycloakAdminRestClient";
-
   @Bean
-  @Qualifier(KEYCLOAK_ADMIN_REST_CLIENT)
-  public RestClient keycloakAdminRestClient(
-      RestClientFactory factory, HttpClientProperties properties) {
-    HttpClientProperties.ClientConfig keycloakClientConfig =
-        properties.getHttpClients().get("keycloak-admin");
-    if (keycloakClientConfig == null) {
-      throw new IllegalStateException("Configuration for http-client 'keycloak-admin' not found.");
-    }
-    return factory.createOAuth2RestClient(keycloakClientConfig);
-  }
-
-  @Bean
-  public UsersApi keycloakAdminUserApi(
-      @Qualifier(KEYCLOAK_ADMIN_REST_CLIENT) RestClient restClient) {
-    HttpServiceProxyFactory factory =
-        HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build();
-    return factory.createClient(UsersApi.class);
+  public Keycloak keycloakAdminClient(KeycloakAdminClientProperties properties) {
+    return KeycloakBuilder.builder()
+        .serverUrl(properties.getServerUrl())
+        .realm(properties.getRealm())
+        .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+        .clientId(properties.getClientId())
+        .clientSecret(properties.getClientSecret())
+        .resteasyClient(new ResteasyClientBuilderImpl().connectionPoolSize(10).build())
+        .build();
   }
 }

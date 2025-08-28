@@ -101,6 +101,32 @@ paths:
           description: "Unauthorized"
         "404":
           description: "User not found"
+  /role:
+    post:
+      tags:
+      - "Role"
+      summary: "create new role"
+      description: "create role"
+      operationId: "createRole"
+      security:
+      - oAuth:
+        - "role:create"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoleDTO"
+      responses:
+        "201":
+          description: "Role created successfully"
+          content:
+            application/json:
+              schema:
+                type: "string"
+                format: "uuid"
+        "409":
+          description: "this role already exist"
 components:
   schemas:
     DemoDTO:
@@ -163,3 +189,13 @@ components:
           format: "date"
         address:
           $ref: "#/components/schemas/AddressDTO"
+    CreateRoleDTO:
+      required:
+      - "name"
+      properties:
+        name:
+          type: "string"
+          description: "name of role"
+        description:
+          type: "string"
+          description: "description of role"

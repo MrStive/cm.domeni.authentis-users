@@ -25,7 +25,7 @@ public class FirstName implements Serializable {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (o == null || !(o instanceof FirstName)) {
       return false;
     }
     FirstName firstName = (FirstName) o;
