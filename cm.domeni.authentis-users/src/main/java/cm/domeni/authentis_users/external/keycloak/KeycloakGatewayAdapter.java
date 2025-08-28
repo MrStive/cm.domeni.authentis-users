@@ -3,11 +3,9 @@ package cm.domeni.authentis_users.external.keycloak;
 import cm.domeni.authentis_users.domain.user.UserData;
 import cm.domeni.authentis_users.exception.UserAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserCanNotCreateException;
-import cm.domeni.authentis_users.keycloak.api.KeycloakAdminUserApi;
-import cm.domeni.authentis_users.keycloak.dto.KeyCloakCredential;
-import cm.domeni.authentis_users.keycloak.dto.KeyCloakUser;
-import java.util.Collections;
-import java.util.Optional;
+import cm.domeni.keycloak.api.UsersApi;
+import cm.domeni.keycloak.dto.KeyCloakCredentialRepresentation;
+import cm.domeni.keycloak.dto.KeyCloakUserRepresentation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,18 +13,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.Collections;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class KeycloakGatewayAdapter implements KeycloakGateway {
 
-  private final KeycloakAdminUserApi keycloakAdminUserApi;
+  private final UsersApi keycloakAdminUserApi;
 
   @Override
   public Optional<String> createUser(UserData userData)
       throws UserAlreadyExistException, UserCanNotCreateException {
     String username = userData.userName().getValue().trim();
-    KeyCloakUser userToCreate = buildKeyCloakUser(userData, username);
+      KeyCloakUserRepresentation userToCreate = buildKeyCloakUser(userData, username);
 
     try {
       ResponseEntity<Void> response = keycloakAdminUserApi.createUser(userToCreate);
@@ -68,7 +69,7 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
     }
   }
 
-  private KeyCloakUser buildKeyCloakUser(UserData userData, String username) {
+  private KeyCloakUserRepresentation buildKeyCloakUser(UserData userData, String username) {
     if (username.isEmpty()) {
       throw new IllegalArgumentException("Username is required");
     }
@@ -77,7 +78,7 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
       throw new IllegalArgumentException("Password must be at least 6 characters");
     }
 
-    KeyCloakUser user = new KeyCloakUser();
+      KeyCloakUserRepresentation user = new KeyCloakUserRepresentation();
     user.setUsername(username);
     user.setEmail(userData.email().getValue());
     user.setFirstName(userData.firstName().getValue());
@@ -85,7 +86,7 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
     user.setEnabled(true);
     user.setEmailVerified(false);
 
-    KeyCloakCredential credential = new KeyCloakCredential();
+      KeyCloakCredentialRepresentation  credential = new KeyCloakCredentialRepresentation();
     credential.setType("password");
     credential.setValue(password);
     credential.setTemporary(false);
