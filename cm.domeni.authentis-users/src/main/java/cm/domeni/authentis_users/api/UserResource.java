@@ -25,4 +25,10 @@ public class UserResource implements UserApi {
     UUID createdUserId = userService.createUser(createUser);
     return ResponseEntity.status(HttpStatus.CREATED).body(createdUserId);
   }
+
+  @Override
+  public ResponseEntity<Void> addRoleToUser(UUID userId, String roleName) {
+    userService.addRoleToUser(userId, roleName);
+    return ResponseEntity.noContent().build();
+  }
 }

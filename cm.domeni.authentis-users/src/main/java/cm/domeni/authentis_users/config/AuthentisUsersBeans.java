@@ -10,8 +10,10 @@ import cm.domeni.authentis_users.domain.role.imp.RoleFactoryImpl;
 import cm.domeni.authentis_users.domain.user.UserFactory;
 import cm.domeni.authentis_users.domain.user.UserFetcher;
 import cm.domeni.authentis_users.domain.user.UserRepository;
+import cm.domeni.authentis_users.domain.user.UserUpdater;
 import cm.domeni.authentis_users.domain.user.impl.UserFactoryImpl;
 import cm.domeni.authentis_users.domain.user.impl.UserFetcherImpl;
+import cm.domeni.authentis_users.domain.user.impl.UserUpdaterImpl;
 import cm.domeni.authentis_users.external.keycloak.KeycloakGateway;
 import cm.domeni.authentis_users.repository.DemoSpringRepository;
 import cm.domeni.authentis_users.repository.UserSpringRepository;
@@ -58,5 +60,10 @@ public class AuthentisUsersBeans {
   @Bean
   public RoleFactory roleFactory(KeycloakGateway keycloakGateway) {
     return new RoleFactoryImpl(keycloakGateway);
+  }
+
+  @Bean
+  public UserUpdater userUpdater(KeycloakGateway keycloakGateway) {
+    return new UserUpdaterImpl(keycloakGateway);
   }
 }
