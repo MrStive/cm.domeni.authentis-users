@@ -5,6 +5,7 @@ import cm.domeni.authentis_users.domain.user.UserData;
 import cm.domeni.authentis_users.exception.UserAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserCanNotCreateException;
 import com.google.common.base.Splitter;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.Collections;
@@ -13,6 +14,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
 
@@ -26,8 +28,35 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   public KeycloakGatewayAdapter(
       Keycloak keycloakAdminClient, KeycloakAdminClientProperties properties) {
     this.keycloakAdminClient = keycloakAdminClient;
-    // Extract target realm from new properties
     this.targetRealm = properties.getRealm();
+  }
+
+  @Override
+  public String createRole(cm.domeni.authentis_users.domain.role.RoleData roleData)
+      throws cm.domeni.authentis_users.exception.RoleAlreadyExistException {
+    RoleRepresentation roleRepresentation = new RoleRepresentation();
+    roleRepresentation.setName(roleData.name());
+    roleRepresentation.setDescription(roleData.description());
+    roleRepresentation.setClientRole(false);
+
+    try {
+      keycloakAdminClient.realm(targetRealm).roles().create(roleRepresentation);
+      log.info("Role '{}' created in Keycloak.", roleData.name());
+      RoleRepresentation createdRole =
+          keycloakAdminClient.realm(targetRealm).roles().get(roleData.name()).toRepresentation();
+      return createdRole.getId();
+    } catch (ClientErrorException e) {
+      if (e.getResponse().getStatus() == 409) {
+        throw new cm.domeni.authentis_users.exception.RoleAlreadyExistException(
+            "Role already exists: {}%s".formatted(roleData.name()));
+      }
+      log.error(
+          "Keycloak error while creating role. Status: {}, Reason: {}",
+          e.getResponse().getStatus(),
+          e.getResponse().getStatusInfo().getReasonPhrase());
+      throw new RuntimeException(
+          "Keycloak error failed with status: %d".formatted(e.getResponse().getStatus()));
+    }
   }
 
   @Override
@@ -47,14 +76,14 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
         return Optional.empty();
       } else {
         if (response.getStatus() == 409) { // 409 Conflict
-          throw new UserAlreadyExistException("User already exists: " + username);
+          throw new UserAlreadyExistException("User already exists: %s".formatted(username));
         }
         log.error(
             "Keycloak error while creating user. Status: {}, Reason: {}",
             response.getStatus(),
             response.getStatusInfo().getReasonPhrase());
         throw new UserCanNotCreateException(
-            "Keycloak error failed with status: " + response.getStatus(), null);
+            "Keycloak error failed with status: %d".formatted(response.getStatus()), null);
       }
     } catch (Exception e) {
       log.error("Unexpected error creating user in Keycloak", e);
@@ -66,10 +95,10 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   public void deleteUser(String userId) {
     try {
       keycloakAdminClient.realm(targetRealm).users().get(userId).remove();
-      log.info("Compensating action: successfully deleted Keycloak user \'{}\'", userId);
+      log.info("Compensating action: successfully deleted Keycloak user '{}'", userId);
     } catch (Exception e) {
       log.error(
-          "Failed to delete user \'{}\' during compensating transaction. Manual cleanup may be"
+          "Failed to delete user '{}' during compensating transaction. Manual cleanup may be"
               + " required.",
           userId,
           e);
@@ -104,8 +133,8 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   private String extractUserIdFromLocation(String location) {
     List<String> parts = Splitter.on("/").splitToList(location);
     if (!parts.isEmpty()) {
-      return parts.get(parts.size() - 1);
+      return parts.getLast();
     }
-    throw new RuntimeException("Unable to extract user ID from location: " + location);
+    throw new RuntimeException("Unable to extract user ID from location: %s".formatted(location));
   }
 }
