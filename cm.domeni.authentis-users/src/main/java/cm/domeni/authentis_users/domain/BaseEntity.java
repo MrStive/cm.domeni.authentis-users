@@ -15,6 +15,7 @@ public abstract class BaseEntity<T extends Serializable> implements Entity<T> {
 
     public abstract C build();
 
+    @Override
     public String toString() {
       return "BaseEntity.BaseEntityBuilder()";
     }

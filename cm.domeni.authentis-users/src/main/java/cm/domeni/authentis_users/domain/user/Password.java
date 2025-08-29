@@ -25,7 +25,7 @@ public class Password implements Serializable {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (o == null || !(o instanceof Password)) {
       return false;
     }
     Password password = (Password) o;

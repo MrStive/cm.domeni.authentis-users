@@ -1,16 +1,15 @@
 package cm.domeni.authentis_users.service.mapper;
 
-import cm.domeni.authentis_user.dto.AddressDTO;
-import cm.domeni.authentis_user.dto.CreateUser;
-import cm.domeni.authentis_user.dto.UserDTO;
 import cm.domeni.authentis_users.domain.user.*;
+import cm.domeni.authentis_users.dto.AddressDTO;
+import cm.domeni.authentis_users.dto.CreateUser;
+import cm.domeni.authentis_users.dto.UserDTO;
+import java.time.LocalDate;
+import java.util.Optional;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-
-import java.time.LocalDate;
-import java.util.Optional;
 
 @Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface UserMapper {

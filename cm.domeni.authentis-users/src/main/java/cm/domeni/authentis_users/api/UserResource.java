@@ -1,8 +1,7 @@
 package cm.domeni.authentis_users.api;
 
-import cm.domeni.authentis_user.api.UserApi;
-import cm.domeni.authentis_user.dto.CreateUser;
-import cm.domeni.authentis_user.dto.UserDTO;
+import cm.domeni.authentis_users.dto.CreateUser;
+import cm.domeni.authentis_users.dto.UserDTO;
 import cm.domeni.authentis_users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,20 +1,19 @@
 package cm.domeni.authentis_users.api;
 
-import cm.domeni.authentis_user.dto.DemoDTO;
+import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import cm.domeni.authentis_users.dto.DemoDTO;
 import cm.domeni.authentis_users.service.DemoService;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-
-import java.util.List;
-import java.util.UUID;
-
-import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DemoResourceTest {

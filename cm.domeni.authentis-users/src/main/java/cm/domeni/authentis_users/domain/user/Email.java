@@ -24,7 +24,7 @@ public class Email implements Serializable {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (o == null || !(o instanceof Email)) {
       return false;
     }
     Email email = (Email) o;

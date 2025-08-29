@@ -25,7 +25,7 @@ public class UserName implements Serializable {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (o == null || !(o instanceof UserName)) {
       return false;
     }
     UserName userName = (UserName) o;

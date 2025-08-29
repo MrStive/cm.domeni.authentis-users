@@ -19,10 +19,12 @@ public abstract class EntityAdapter<T extends Serializable> extends BaseEntity<T
   @Column(name = "c_deleted")
   private boolean deleted;
 
+  @Override
   public void markAsDeleted() {
     this.deleted = true;
   }
 
+  @Override
   public void markAsNotDeleted() {
     this.deleted = false;
   }
@@ -55,10 +57,13 @@ public abstract class EntityAdapter<T extends Serializable> extends BaseEntity<T
       return this.self();
     }
 
+    @Override
     protected abstract B self();
 
+    @Override
     public abstract C build();
 
+    @Override
     public String toString() {
       String var10000 = super.toString();
       return "EntityAdapter.EntityAdapterBuilder(super="

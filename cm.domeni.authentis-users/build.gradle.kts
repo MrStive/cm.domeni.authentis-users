@@ -65,6 +65,8 @@ dependencies {
     // Security
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    implementation("org.keycloak:keycloak-admin-client:24.0.4")
+    implementation("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0") // Added for Keycloak SDK
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.testcontainers:kafka:$testContainerVersion")
 
@@ -102,6 +104,7 @@ dependencies {
     testImplementation("io.rest-assured:rest-assured:5.3.2")
     testImplementation("io.rest-assured:spring-mock-mvc:5.4.0")
     implementation("org.awaitility:awaitility:4.2.0")
+    implementation("com.google.guava:guava:33.2.1-jre")
 }
 
 tasks.named<JavaCompile>("compileJava") {
@@ -177,8 +180,8 @@ tasks.named<GenerateTask>("openApiGenerate") {
             .get()
             .asFile.path,
     )
-    apiPackage.set("cm.domeni.authentis_user.api")
-    modelPackage.set("cm.domeni.authentis_user.dto")
+    apiPackage.set("cm.domeni.authentis_users.api")
+    modelPackage.set("cm.domeni.authentis_users.dto")
     configOptions.set(
         mapOf(
             "dateLibrary" to "java8-localdatetime",
@@ -204,43 +207,9 @@ tasks.named<GenerateTask>("openApiGenerate") {
             file(templateDir.get()).lastModified() > generatedSourceCodeDir.lastModified()
     }
 }
-tasks.register<GenerateTask>("keycloakOpenApiGenerate") {
-    generatorName = "spring"
-    templateDir = "$rootDir/openapi/templates/spring-http-interface"
-    inputSpec = "$rootDir/openapi/keycloak.yaml"
-    outputDir =
-        layout.buildDirectory
-            .dir("generated/sources/openapi")
-            .get()
-            .asFile.path
-    apiPackage = "cm.domeni.keycloak.api"
-    modelPackage = "cm.domeni.keycloak.dto"
-    modelNamePrefix = "keyCloak"
-    configOptions =
-        mapOf(
-            "dateLibrary" to "java8-localdatetime",
-            "library" to "spring-http-interface",
-            "interfaceOnly" to "true",
-            "useTags" to "true",
-        )
-    typeMappings =
-        mapOf(
-            "time" to "java.time.LocalTime",
-        )
-    val generatedSourceCodeDir = file(outputDir.get() + "/src/main/java/cm/domeni.authentis_users/keycloak")
-    doFirst {
-        generatedSourceCodeDir.deleteRecursively()
-    }
-    onlyIf {
-        !generatedSourceCodeDir.exists() ||
-            file(inputSpec.get()).lastModified() > generatedSourceCodeDir.lastModified() ||
-            file(templateDir.get()).lastModified() > generatedSourceCodeDir.lastModified()
-    }
-}
 
 tasks.compileJava.get().dependsOn(
     tasks["openApiGenerate"],
-    tasks["keycloakOpenApiGenerate"],
 )
 
 sourceSets.main

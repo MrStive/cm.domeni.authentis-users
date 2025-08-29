@@ -23,7 +23,7 @@ public class Address implements Serializable {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (o == null || !(o instanceof Address)) {
       return false;
     }
     Address address = (Address) o;
