@@ -127,6 +127,36 @@ paths:
                 format: "uuid"
         "409":
           description: "this role already exist"
+  /users/{userId}/roles/{roleName}:
+    post:
+      tags:
+      - "User"
+      operationId: "addRoleToUser"
+      summary: "Add roles to a user"
+      parameters:
+      - in: "path"
+        name: "userId"
+        required: true
+        schema:
+          type: "string"
+          format: "uuid"
+        description: "The user ID"
+      - in: "path"
+        name: "roleName"
+        required: true
+        schema:
+          type: "string"
+        description: "The name of the role to be added"
+      security:
+      - oAuth:
+        - "role:assign"
+      responses:
+        "204":
+          description: "Roles added successfully"
+        "404":
+          description: "User/role not found"
+        "400":
+          description: "Invalid role name"
 components:
   schemas:
     DemoDTO:

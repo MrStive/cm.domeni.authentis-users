@@ -6,6 +6,7 @@ import cm.domeni.authentis_users.exception.RoleAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserCanNotCreateException;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface KeycloakGateway {
   Optional<String> createUser(UserData createUser)
@@ -14,4 +15,6 @@ public interface KeycloakGateway {
   void deleteUser(String userId);
 
   String createRole(RoleData roleData) throws RoleAlreadyExistException;
+
+  void assignRoleToUser(UUID userId, String roleName);
 }
