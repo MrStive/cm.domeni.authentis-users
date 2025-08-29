@@ -7,17 +7,16 @@ import cm.domeni.authentis_users.exception.UserCanNotCreateException;
 import com.google.common.base.Splitter;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
-
-import java.net.URI;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -48,14 +47,15 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
       return createdRole.getId();
     } catch (ClientErrorException e) {
       if (e.getResponse().getStatus() == 409) {
-        throw new cm.domeni.authentis_users.exception.RoleAlreadyExistException("Role already exists: {}%s".formatted(roleData.name()));
+        throw new cm.domeni.authentis_users.exception.RoleAlreadyExistException(
+            "Role already exists: {}%s".formatted(roleData.name()));
       }
       log.error(
           "Keycloak error while creating role. Status: {}, Reason: {}",
           e.getResponse().getStatus(),
           e.getResponse().getStatusInfo().getReasonPhrase());
       throw new RuntimeException(
-              "Keycloak error failed with status: %d".formatted(e.getResponse().getStatus()));
+          "Keycloak error failed with status: %d".formatted(e.getResponse().getStatus()));
     }
   }
 
@@ -83,7 +83,7 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
             response.getStatus(),
             response.getStatusInfo().getReasonPhrase());
         throw new UserCanNotCreateException(
-                "Keycloak error failed with status: %d".formatted(response.getStatus()), null);
+            "Keycloak error failed with status: %d".formatted(response.getStatus()), null);
       }
     } catch (Exception e) {
       log.error("Unexpected error creating user in Keycloak", e);
@@ -98,7 +98,7 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
       log.info("Compensating action: successfully deleted Keycloak user '{}'", userId);
     } catch (Exception e) {
       log.error(
-              "Failed to delete user '{}' during compensating transaction. Manual cleanup may be"
+          "Failed to delete user '{}' during compensating transaction. Manual cleanup may be"
               + " required.",
           userId,
           e);

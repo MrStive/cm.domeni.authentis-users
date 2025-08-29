@@ -3,12 +3,11 @@ package cm.domeni.authentis_users.api;
 import cm.domeni.authentis_users.dto.CreateRoleDTO;
 import cm.domeni.authentis_users.exception.RoleAlreadyExistException;
 import cm.domeni.authentis_users.service.RoleService;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor

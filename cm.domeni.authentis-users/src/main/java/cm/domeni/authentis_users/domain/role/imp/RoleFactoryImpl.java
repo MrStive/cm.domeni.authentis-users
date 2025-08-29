@@ -8,10 +8,10 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class RoleFactoryImpl implements RoleFactory {
-    private final KeycloakGateway keycloakGateway;
-@Override
-    public String create(RoleData roleData) throws RoleAlreadyExistException {
-        return keycloakGateway.createRole(roleData);
-    }
+  private final KeycloakGateway keycloakGateway;
 
+  @Override
+  public String create(RoleData roleData) throws RoleAlreadyExistException {
+    return keycloakGateway.createRole(roleData);
+  }
 }
