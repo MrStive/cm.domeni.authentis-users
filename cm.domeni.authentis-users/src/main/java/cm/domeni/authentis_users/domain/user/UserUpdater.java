@@ -4,4 +4,6 @@ import java.util.UUID;
 
 public interface UserUpdater {
   void assignRole(UUID userId, String roleName);
+
+  void removeRole(UUID userId, String roleName);
 }

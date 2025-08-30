@@ -17,4 +17,6 @@ public interface KeycloakGateway {
   String createRole(RoleData roleData) throws RoleAlreadyExistException;
 
   void assignRoleToUser(UUID userId, String roleName);
+
+  void removeRoleFromUser(UUID userId, String roleName);
 }

@@ -7,8 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
-import static cm.domeni.authentis_users.config.Scopes.ROLE_ASSIGN;
-import static cm.domeni.authentis_users.config.Scopes.ROLE_CREATE;
+import static cm.domeni.authentis_users.config.Scopes.*;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
@@ -24,8 +23,10 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/role")
                     .hasAuthority(ROLE_CREATE)
-                    .requestMatchers(HttpMethod.POST, "/users/{userId}/roles/{roleName}")
+                    .requestMatchers(HttpMethod.PUT, "/users/{userId}/roles/{roleName}")
                     .hasAuthority(ROLE_ASSIGN)
+                    .requestMatchers(HttpMethod.DELETE, "/users/{userId}/roles/{roleName}")
+                    .hasAuthority(ROLE_DELETE)
                     .anyRequest()
                     .denyAll())
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()));

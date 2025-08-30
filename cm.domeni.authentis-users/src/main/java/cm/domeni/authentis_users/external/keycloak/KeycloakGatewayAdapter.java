@@ -7,6 +7,11 @@ import cm.domeni.authentis_users.exception.UserCanNotCreateException;
 import com.google.common.base.Splitter;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UserResource;
@@ -15,12 +20,6 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-
-import java.net.URI;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -49,6 +48,22 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
           delegatedKeycloakAdminClient.realm(targetRealm).roles().get(roleName).toRepresentation();
       userResource.roles().realmLevel().add(Collections.singletonList(roleRepresentation));
       log.info("Successfully assigned role '{}' to user '{}'", roleName, userId);
+    } catch (jakarta.ws.rs.NotFoundException e) {
+      log.warn("User '{}' or role '{}' not found in Keycloak", userId, roleName);
+      throw new cm.domeni.authentis_users.exception.NotFoundException("User or role not found");
+    }
+  }
+
+  @Override
+  public void removeRoleFromUser(UUID userId, String roleName) {
+    log.debug("Removing role '{}' from user '{}'", roleName, userId);
+    try {
+      UserResource userResource =
+          delegatedKeycloakAdminClient.realm(targetRealm).users().get(userId.toString());
+      RoleRepresentation roleRepresentation =
+          delegatedKeycloakAdminClient.realm(targetRealm).roles().get(roleName).toRepresentation();
+      userResource.roles().realmLevel().remove(Collections.singletonList(roleRepresentation));
+      log.info("Successfully removed role '{}' from user '{}'", roleName, userId);
     } catch (jakarta.ws.rs.NotFoundException e) {
       log.warn("User '{}' or role '{}' not found in Keycloak", userId, roleName);
       throw new cm.domeni.authentis_users.exception.NotFoundException("User or role not found");

@@ -31,4 +31,10 @@ public class UserResource implements UserApi {
     userService.addRoleToUser(userId, roleName);
     return ResponseEntity.noContent().build();
   }
+
+  @Override
+  public ResponseEntity<Void> removeRoleToUser(UUID userId, String roleName) {
+    userService.removeRoleFromUser(userId, roleName);
+    return ResponseEntity.noContent().build();
+  }
 }
