@@ -1,0 +1,17 @@
+bin/
+build/
+gradle/
+.gradle/
+.classpath
+lib/
+.idea/
+.project
+.settings/
+.springBeans
+gradle.prefs
+**/*.log
+.pgpass
+gradlew
+gradlew.bat
+**/application-local.yml
+.resourceCache

@@ -105,6 +105,8 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   @Override
   public Optional<String> createUser(UserData userData)
       throws UserAlreadyExistException, UserCanNotCreateException {
+    log.debug("Creating user '{}' in Keycloak", userData.userName().getValue().trim());
+    System.out.println("Creating user '{}' in Keycloak");
     String username = userData.userName().getValue().trim();
     UserRepresentation userToCreate = buildUserRepresentation(userData, username);
 
@@ -119,7 +121,7 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
         log.warn("User created in Keycloak but location header was missing.");
         return Optional.empty();
       } else {
-        if (response.getStatus() == 409) { // 409 Conflict
+        if (response.getStatus() == 409) {
           throw new UserAlreadyExistException("User already exists: %s".formatted(username));
         }
         log.error(
