@@ -14,4 +14,9 @@ public class UserUpdaterImpl implements UserUpdater {
   public void assignRole(UUID userId, String roleName) {
     keycloakGateway.assignRoleToUser(userId, roleName);
   }
+
+  @Override
+  public void removeRole(UUID userId, String roleName) {
+    keycloakGateway.removeRoleFromUser(userId, roleName);
+  }
 }

@@ -1,4 +1,6 @@
 ---
+server:
+  port: 8089
 spring:
   application:
     name: "authentis-users"
@@ -14,14 +16,15 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: "${ISSUER-URI:http://localhost:8280/realms/flash-home2}"
-          jwk-set-uri: "${jwtk-set-uri:http://localhost:8280/realms/flash-home2/protocol/openid-connect/certs}"
+          issuer-uri: "${ISSUER-URI:http://localhost:8080/realms/authentis-user}"
+          jwk-set-uri: "${jwtk-set-uri:http://localhost:8080/realms/authentis-user/protocol/openid-connect/certs}"
 logging:
   level:
-    org.springframework.security: "INFO"
+    org.springframework.security: "DEBUG"
+    org.springframework.web: "DEBUG"
 keycloak:
   admin-client:
-    server-url: "${KEYCLOAK_SERVER_URL:http://localhost:8280}"
-    realm: "${KEYCLOAK_REALM:flash-home2}"
-    client-id: "${KEYCLOAK_ADMIN_CLIENT_ID:flash-home2}"
-    client-secret: "${KEYCLOAK_ADMIN_CLIENT_SECRET:iha3FXUz0utfmhGhQrnDZSwY5OtuaFUJ}"
+    server-url: "${KEYCLOAK_SERVER_URL:http://localhost:8080}"
+    realm: "${KEYCLOAK_REALM:authentis-user}"
+    client-id: "${KEYCLOAK_ADMIN_CLIENT_ID:authentis-users}"
+    client-secret: "${KEYCLOAK_ADMIN_CLIENT_SECRET:9NUbJeoBdCvqdZIgrC3etSWdcCFn12GX}"

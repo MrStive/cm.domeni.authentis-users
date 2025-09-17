@@ -128,7 +128,7 @@ paths:
         "409":
           description: "this role already exist"
   /users/{userId}/roles/{roleName}:
-    post:
+    put:
       tags:
       - "User"
       operationId: "addRoleToUser"
@@ -153,6 +153,35 @@ paths:
       responses:
         "204":
           description: "Roles added successfully"
+        "404":
+          description: "User/role not found"
+        "400":
+          description: "Invalid role name"
+    delete:
+      tags:
+      - "User"
+      summary: "Remove roles to a user"
+      description: "Remove roles  to a user"
+      operationId: "removeRoleToUser"
+      parameters:
+      - in: "path"
+        name: "userId"
+        required: true
+        schema:
+          type: "string"
+          format: "uuid"
+      - in: "path"
+        name: "roleName"
+        required: true
+        schema:
+          type: "string"
+          description: "The name of the role to be removed"
+      security:
+      - oAuth:
+        - "role:delete"
+      responses:
+        "204":
+          description: "Roles removed successfully"
         "404":
           description: "User/role not found"
         "400":

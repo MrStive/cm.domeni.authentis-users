@@ -38,4 +38,9 @@ public class UserService {
   public void addRoleToUser(UUID userId, String roleName) {
     userUpdater.assignRole(userId, roleName);
   }
+
+  @Transactional
+  public void removeRoleFromUser(UUID userId, String roleName) {
+    userUpdater.removeRole(userId, roleName);
+  }
 }

@@ -6,8 +6,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 public final class SecurityUtils {
 
-  private SecurityUtils() {
-  }
+  private SecurityUtils() {}
 
   public static String getCurrentUserToken() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
