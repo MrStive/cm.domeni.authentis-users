@@ -108,6 +108,30 @@ paths:
           description: "Forbidden"
         "502":
           description: "Keycloak unavailable"
+  /auth/logout:
+    post:
+      tags:
+      - "Auth"
+      summary: "Logout user session"
+      description: "Invalidates refresh token and terminates Keycloak user session"
+      operationId: "logout"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "204":
+          description: "Logout completed successfully"
+        "400":
+          description: "Invalid or expired refresh token"
+        "401":
+          description: "Unauthorized client"
+        "403":
+          description: "Forbidden"
+        "502":
+          description: "Keycloak unavailable"
   /user:
     get:
       tags:

@@ -34,6 +34,7 @@ public class DemoE2ESteps {
   private Response latestResponse;
   private UUID lastCreatedDemoId;
   private UUID lastRegisteredUserId;
+  private String authenticatedAccessToken;
 
   @Before
   public void resetDatabaseAndHttpClient() {
@@ -152,6 +153,46 @@ public class DemoE2ESteps {
             .post("/auth/refresh");
   }
 
+  @When("^I call POST /auth/logout$")
+  public void iCallPostAuthLogout() {
+    latestResponse =
+        RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(refreshTokenPayload)
+            .when()
+            .post("/auth/logout");
+  }
+
+  @Given("^an authenticated access token$")
+  public void anAuthenticatedAccessToken() {
+    authenticatedAccessToken = CucumberSpringConfiguration.issueToken();
+  }
+
+  @When("^I call POST /auth/logout as the authenticated user$")
+  public void iCallPostAuthLogoutAsTheAuthenticatedUser() {
+    assertThat(authenticatedAccessToken).isNotBlank();
+    latestResponse =
+        RestAssured.given()
+            .contentType(ContentType.JSON)
+            .auth()
+            .oauth2(authenticatedAccessToken)
+            .body(refreshTokenPayload)
+            .when()
+            .post("/auth/logout");
+  }
+
+  @When("^I call GET /demo with the same access token$")
+  public void iCallGetDemoWithTheSameAccessToken() {
+    assertThat(authenticatedAccessToken).isNotBlank();
+    latestResponse =
+        RestAssured.given()
+            .contentType(ContentType.JSON)
+            .auth()
+            .oauth2(authenticatedAccessToken)
+            .when()
+            .get("/demo");
+  }
+
   @Given("a registered user with username {string}")
   public void aRegisteredUserWithUsername(String userName) {
     aUserPayloadWithUsernameAndEmail(userName, "%s@example.test".formatted(userName));
@@ -250,6 +291,11 @@ public class DemoE2ESteps {
     assertThat(accessToken).isNotBlank();
     assertThat(tokenType).isEqualTo(expectedTokenType);
     assertThat(refreshToken).isNotBlank();
+  }
+
+  @Then("^the problem detail title should be \"([^\"]*)\"$")
+  public void theProblemDetailTitleShouldBe(String expectedTitle) {
+    assertThat(latestResponse.jsonPath().getString("title")).isEqualTo(expectedTitle);
   }
 
   private UUID readUuidBody() {

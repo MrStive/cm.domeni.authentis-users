@@ -27,6 +27,25 @@ Feature: Users and roles end-to-end
     Then the HTTP status should be 200
     And the refresh response should contain token type "Bearer"
 
+  Scenario: Logout with a valid refresh token
+    Given a refresh token payload with token "mock-refresh-token"
+    When I call POST /auth/logout
+    Then the HTTP status should be 204
+
+  Scenario: Logout revokes the current access token immediately
+    Given a refresh token payload with token "mock-refresh-token"
+    And an authenticated access token
+    When I call POST /auth/logout as the authenticated user
+    Then the HTTP status should be 204
+    When I call GET /demo with the same access token
+    Then the HTTP status should be 401
+
+  Scenario: Logout with an invalid refresh token
+    Given a refresh token payload with token "invalid-refresh-token"
+    When I call POST /auth/logout
+    Then the HTTP status should be 400
+    And the problem detail title should be "Invalid Refresh Token"
+
   Scenario: Create role and assign/remove it to a registered user
     Given a registered user with username "role-user"
     And an existing role named "manager"

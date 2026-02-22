@@ -19,8 +19,11 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class KeycloakTokenClient {
   private static final String REFRESH_OPERATION = "refresh token";
+  private static final String LOGOUT_OPERATION = "logout";
   private static final int KEYCLOAK_UNAVAILABLE_STATUS = 502;
   private static final String TOKEN_ENDPOINT_TEMPLATE = "/realms/%s/protocol/openid-connect/token";
+  private static final String LOGOUT_ENDPOINT_TEMPLATE =
+      "/realms/%s/protocol/openid-connect/logout";
 
   private final WebClient.Builder webClientBuilder;
   private final KeycloakTokenClientProperties properties;
@@ -88,6 +91,50 @@ public class KeycloakTokenClient {
     }
   }
 
+  public void logout(String refreshToken) {
+    String normalizedRefreshToken = requireNonBlank(refreshToken, "refresh token");
+
+    MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+    formData.add("client_id", properties.getClientId());
+    formData.add("client_secret", properties.getClientSecret());
+    formData.add("refresh_token", normalizedRefreshToken);
+
+    try {
+      webClientBuilder
+          .baseUrl(properties.getServerUrl())
+          .build()
+          .post()
+          .uri(LOGOUT_ENDPOINT_TEMPLATE.formatted(properties.getRealm()))
+          .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+          .body(BodyInserters.fromFormData(formData))
+          .exchangeToMono(
+              response -> {
+                int status = response.statusCode().value();
+                if (response.statusCode().is2xxSuccessful()) {
+                  return Mono.empty();
+                }
+                return response
+                    .bodyToMono(KeycloakErrorResponse.class)
+                    .defaultIfEmpty(new KeycloakErrorResponse("unknown_error", "No details"))
+                    .flatMap(errorResponse -> Mono.error(mapLogoutError(status, errorResponse)));
+              })
+          .timeout(Duration.ofSeconds(properties.getReadTimeoutSeconds()))
+          .block();
+    } catch (InvalidRefreshTokenException e) {
+      throw e;
+    } catch (IllegalArgumentException e) {
+      throw e;
+    } catch (KeycloakOperationException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new KeycloakOperationException(
+          LOGOUT_OPERATION,
+          KEYCLOAK_UNAVAILABLE_STATUS,
+          "Cannot reach Keycloak logout endpoint",
+          e);
+    }
+  }
+
   private RuntimeException mapTokenError(int status, KeycloakErrorResponse errorResponse) {
     String error = errorResponse.error() != null ? errorResponse.error() : "unknown_error";
     String description =
@@ -106,6 +153,26 @@ public class KeycloakTokenClient {
         REFRESH_OPERATION,
         status,
         "Keycloak refresh token call failed with status %d (%s): %s"
+            .formatted(status, error, description));
+  }
+
+  private RuntimeException mapLogoutError(int status, KeycloakErrorResponse errorResponse) {
+    String error = errorResponse.error() != null ? errorResponse.error() : "unknown_error";
+    String description =
+        errorResponse.errorDescription() != null
+            ? errorResponse.errorDescription()
+            : "No description";
+
+    if (status == 400 && "invalid_grant".equalsIgnoreCase(error)) {
+      return new InvalidRefreshTokenException("Invalid or expired refresh token");
+    }
+    if (status == 400) {
+      return new IllegalArgumentException("Invalid logout request: %s".formatted(description));
+    }
+    return new KeycloakOperationException(
+        LOGOUT_OPERATION,
+        status,
+        "Keycloak logout call failed with status %d (%s): %s"
             .formatted(status, error, description));
   }
 

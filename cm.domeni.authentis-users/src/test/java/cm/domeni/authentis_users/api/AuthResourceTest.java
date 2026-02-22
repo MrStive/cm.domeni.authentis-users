@@ -3,6 +3,7 @@ package cm.domeni.authentis_users.api;
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import cm.domeni.authentis_users.dto.RefreshTokenRequest;
@@ -51,5 +52,24 @@ class AuthResourceTest {
     assertThat(actualResponse.getAccessToken()).isEqualTo(expectedResponse.getAccessToken());
     assertThat(actualResponse.getTokenType()).isEqualTo(expectedResponse.getTokenType());
     assertThat(actualResponse.getRefreshToken()).isEqualTo(expectedResponse.getRefreshToken());
+  }
+
+  @Test
+  void shouldLogout() {
+    RefreshTokenRequest request = new RefreshTokenRequest();
+    request.setRefreshToken("incoming-refresh-token");
+
+    // spotless:off
+    given()
+        .standaloneSetup(new AuthResource(authService))
+        .contentType(MediaType.APPLICATION_JSON_VALUE)
+        .body(request)
+        .when()
+        .post("/auth/logout")
+        .then()
+        .statusCode(204);
+    // spotless:on
+
+    verify(authService).logout(any(RefreshTokenRequest.class));
   }
 }

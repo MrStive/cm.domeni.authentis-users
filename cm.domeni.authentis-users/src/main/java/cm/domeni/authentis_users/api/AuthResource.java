@@ -17,4 +17,10 @@ public class AuthResource implements AuthApi {
       RefreshTokenRequest refreshTokenRequest) {
     return ResponseEntity.ok(authService.refreshToken(refreshTokenRequest));
   }
+
+  @Override
+  public ResponseEntity<Void> logout(RefreshTokenRequest refreshTokenRequest) {
+    authService.logout(refreshTokenRequest);
+    return ResponseEntity.noContent().build();
+  }
 }

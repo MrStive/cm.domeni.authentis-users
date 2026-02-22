@@ -1,6 +1,7 @@
 package cm.domeni.authentis_users.e2e;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
@@ -128,6 +129,27 @@ public class CucumberSpringConfiguration {
                       "scope": "profile email"
                     }
                     """)));
+
+    WIREMOCK.stubFor(
+        post(urlEqualTo("/realms/%s/protocol/openid-connect/logout".formatted(REALM)))
+            .atPriority(1)
+            .withRequestBody(containing("refresh_token=invalid-refresh-token"))
+            .willReturn(
+                aResponse()
+                    .withStatus(400)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {
+                          "error": "invalid_grant",
+                          "error_description": "Invalid refresh token"
+                        }
+                        """)));
+
+    WIREMOCK.stubFor(
+        post(urlEqualTo("/realms/%s/protocol/openid-connect/logout".formatted(REALM)))
+            .atPriority(10)
+            .willReturn(aResponse().withStatus(204)));
 
     WIREMOCK.stubFor(
         get(urlEqualTo("/realms/%s/protocol/openid-connect/certs".formatted(REALM)))
