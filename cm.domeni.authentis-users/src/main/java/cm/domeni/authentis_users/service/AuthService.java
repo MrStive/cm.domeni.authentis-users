@@ -2,6 +2,8 @@ package cm.domeni.authentis_users.service;
 
 import cm.domeni.authentis_users.dto.RefreshTokenRequest;
 import cm.domeni.authentis_users.dto.RefreshTokenResponse;
+import cm.domeni.authentis_users.dto.ResetPasswordRequest;
+import cm.domeni.authentis_users.external.keycloak.KeycloakGateway;
 import cm.domeni.authentis_users.external.keycloak.KeycloakTokenClient;
 import cm.domeni.authentis_users.security.AccessTokenRevocationService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+  private final KeycloakGateway keycloakGateway;
   private final KeycloakTokenClient keycloakTokenClient;
   private final AccessTokenRevocationService accessTokenRevocationService;
 
@@ -37,5 +40,15 @@ public class AuthService {
     }
     keycloakTokenClient.logout(refreshTokenRequest.getRefreshToken());
     accessTokenRevocationService.revokeCurrentAccessTokenIfPresent();
+  }
+
+  public void resetPasswordWithToken(ResetPasswordRequest resetPasswordRequest) {
+    if (resetPasswordRequest == null) {
+      throw new IllegalArgumentException("request body is required");
+    }
+
+    String userId =
+        keycloakTokenClient.resolveUserIdFromResetToken(resetPasswordRequest.getResetToken());
+    keycloakGateway.resetPassword(userId, resetPasswordRequest.getNewPassword());
   }
 }

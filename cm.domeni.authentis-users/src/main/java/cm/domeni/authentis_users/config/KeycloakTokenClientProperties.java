@@ -18,6 +18,7 @@ public class KeycloakTokenClientProperties {
   @NotBlank private String realm;
   @NotBlank private String clientId;
   @NotBlank private String clientSecret;
+  @NotBlank private String resetTokenRequiredScope = "password:reset";
 
   @Min(1)
   private long readTimeoutSeconds = 10L;

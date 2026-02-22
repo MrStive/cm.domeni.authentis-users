@@ -35,4 +35,5 @@ keycloak:
     realm: "${KEYCLOAK_REALM:authentis-user}"
     client-id: "${KEYCLOAK_TOKEN_CLIENT_ID:authentis-users}"
     client-secret: "${KEYCLOAK_TOKEN_CLIENT_SECRET:change-me}"
+    reset-token-required-scope: "${KEYCLOAK_RESET_TOKEN_REQUIRED_SCOPE:password:reset}"
     read-timeout-seconds: 10

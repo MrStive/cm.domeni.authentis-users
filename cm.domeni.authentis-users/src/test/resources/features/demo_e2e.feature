@@ -27,6 +27,23 @@ Feature: Users and roles end-to-end
     Then the HTTP status should be 200
     And the refresh response should contain token type "Bearer"
 
+  Scenario: Reset password with a valid token
+    Given a reset password payload with token "valid-reset-token" and new password "new-password-123"
+    When I call POST /auth/reset-password
+    Then the HTTP status should be 204
+
+  Scenario: Reset password with an invalid token
+    Given a reset password payload with token "invalid-reset-token" and new password "new-password-123"
+    When I call POST /auth/reset-password
+    Then the HTTP status should be 400
+    And the problem detail title should be "Invalid Reset Token"
+
+  Scenario: Reset password with active token but invalid scope
+    Given a reset password payload with token "active-invalid-scope-token" and new password "new-password-123"
+    When I call POST /auth/reset-password
+    Then the HTTP status should be 400
+    And the problem detail title should be "Invalid Reset Token"
+
   Scenario: Logout with a valid refresh token
     Given a refresh token payload with token "mock-refresh-token"
     When I call POST /auth/logout

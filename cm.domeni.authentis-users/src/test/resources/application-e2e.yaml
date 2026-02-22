@@ -17,4 +17,5 @@ keycloak:
     realm: "authentis-user"
     client-id: "authentis-users"
     client-secret: "test-client-secret"
+    reset-token-required-scope: "password:reset"
     read-timeout-seconds: 5

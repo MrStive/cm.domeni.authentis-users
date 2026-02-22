@@ -21,6 +21,7 @@ keycloak:
     realm: "authentis-user"
     client-id: "authentis-users"
     client-secret: "change-me"
+    reset-token-required-scope: "password:reset"
     read-timeout-seconds: 5
 server:
   port: 8089

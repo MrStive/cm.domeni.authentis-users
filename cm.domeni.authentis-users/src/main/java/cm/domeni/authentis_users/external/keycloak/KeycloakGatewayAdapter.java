@@ -3,6 +3,7 @@ package cm.domeni.authentis_users.external.keycloak;
 import cm.domeni.authentis_users.config.KeycloakAdminClientProperties;
 import cm.domeni.authentis_users.domain.role.RoleData;
 import cm.domeni.authentis_users.domain.user.UserData;
+import cm.domeni.authentis_users.exception.InvalidResetTokenException;
 import cm.domeni.authentis_users.exception.KeycloakOperationException;
 import cm.domeni.authentis_users.exception.NotFoundException;
 import cm.domeni.authentis_users.exception.RoleAlreadyExistException;
@@ -109,6 +110,50 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
           operation,
           500,
           "Unexpected error removing role '%s' from user '%s'".formatted(roleName, userId),
+          e);
+    }
+  }
+
+  @Override
+  public void resetPassword(String userId, String newPassword) {
+    String operation = "reset password";
+    String normalizedUserId = requireNonBlank(userId, "user id");
+    String normalizedNewPassword = requireNonBlank(newPassword, "new password");
+    if (normalizedNewPassword.length() < 6) {
+      throw new IllegalArgumentException("Password must be at least 6 characters");
+    }
+
+    CredentialRepresentation credential = new CredentialRepresentation();
+    credential.setType(CredentialRepresentation.PASSWORD);
+    credential.setValue(normalizedNewPassword);
+    credential.setTemporary(false);
+
+    try {
+      UserResource userResource =
+          keycloakAdminClient.realm(targetRealm).users().get(normalizedUserId);
+      userResource.resetPassword(credential);
+      userResource.logout();
+      log.info("Successfully reset password for user '{}'", normalizedUserId);
+    } catch (ClientErrorException e) {
+      int status = statusCode(e.getResponse());
+      if (status == 404) {
+        throw new InvalidResetTokenException("Invalid or expired reset token");
+      }
+      throw keycloakError(
+          operation,
+          status,
+          "Failed to reset password for user '%s'".formatted(normalizedUserId),
+          e);
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(
+          operation,
+          "Cannot reach Keycloak while resetting password for '%s'".formatted(normalizedUserId),
+          e);
+    } catch (Exception e) {
+      throw keycloakError(
+          operation,
+          500,
+          "Unexpected error resetting password for '%s'".formatted(normalizedUserId),
           e);
     }
   }

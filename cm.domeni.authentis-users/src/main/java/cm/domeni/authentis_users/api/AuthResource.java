@@ -2,6 +2,7 @@ package cm.domeni.authentis_users.api;
 
 import cm.domeni.authentis_users.dto.RefreshTokenRequest;
 import cm.domeni.authentis_users.dto.RefreshTokenResponse;
+import cm.domeni.authentis_users.dto.ResetPasswordRequest;
 import cm.domeni.authentis_users.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,12 @@ public class AuthResource implements AuthApi {
   @Override
   public ResponseEntity<Void> logout(RefreshTokenRequest refreshTokenRequest) {
     authService.logout(refreshTokenRequest);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<Void> resetPasswordWithToken(ResetPasswordRequest resetPasswordRequest) {
+    authService.resetPasswordWithToken(resetPasswordRequest);
     return ResponseEntity.noContent().build();
   }
 }

@@ -6,6 +6,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 
@@ -152,6 +153,48 @@ public class CucumberSpringConfiguration {
             .willReturn(aResponse().withStatus(204)));
 
     WIREMOCK.stubFor(
+        post(urlEqualTo("/realms/%s/protocol/openid-connect/token/introspect".formatted(REALM)))
+            .atPriority(1)
+            .withRequestBody(containing("token=invalid-reset-token"))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "active": false
+                    }
+                    """)));
+
+    WIREMOCK.stubFor(
+        post(urlEqualTo("/realms/%s/protocol/openid-connect/token/introspect".formatted(REALM)))
+            .atPriority(10)
+            .withRequestBody(containing("token=valid-reset-token"))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "active": true,
+                      "sub": "%s",
+                      "scope": "password:reset profile email"
+                    }
+                    """
+                        .formatted(FIXED_USER_ID))));
+
+    WIREMOCK.stubFor(
+        post(urlEqualTo("/realms/%s/protocol/openid-connect/token/introspect".formatted(REALM)))
+            .atPriority(10)
+            .withRequestBody(containing("token=active-invalid-scope-token"))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "active": true,
+                      "sub": "%s",
+                      "scope": "profile email"
+                    }
+                    """
+                        .formatted(FIXED_USER_ID))));
+
+    WIREMOCK.stubFor(
         get(urlEqualTo("/realms/%s/protocol/openid-connect/certs".formatted(REALM)))
             .willReturn(okJson(new JWKSet(RSA_KEY.toPublicJWK()).toString())));
 
@@ -179,6 +222,14 @@ public class CucumberSpringConfiguration {
 
     WIREMOCK.stubFor(
         delete(urlPathMatching("/admin/realms/%s/users/[^/]+".formatted(REALM)))
+            .willReturn(aResponse().withStatus(204)));
+
+    WIREMOCK.stubFor(
+        put(urlPathMatching("/admin/realms/%s/users/[^/]+/reset-password".formatted(REALM)))
+            .willReturn(aResponse().withStatus(204)));
+
+    WIREMOCK.stubFor(
+        post(urlPathMatching("/admin/realms/%s/users/[^/]+/logout".formatted(REALM)))
             .willReturn(aResponse().withStatus(204)));
 
     WIREMOCK.stubFor(

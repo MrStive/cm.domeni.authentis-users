@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import cm.domeni.authentis_users.dto.RefreshTokenRequest;
 import cm.domeni.authentis_users.dto.RefreshTokenResponse;
+import cm.domeni.authentis_users.dto.ResetPasswordRequest;
 import cm.domeni.authentis_users.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,5 +72,25 @@ class AuthResourceTest {
     // spotless:on
 
     verify(authService).logout(any(RefreshTokenRequest.class));
+  }
+
+  @Test
+  void shouldResetPasswordWithToken() {
+    ResetPasswordRequest request = new ResetPasswordRequest();
+    request.setResetToken("valid-reset-token");
+    request.setNewPassword("new-password-123");
+
+    // spotless:off
+    given()
+        .standaloneSetup(new AuthResource(authService))
+        .contentType(MediaType.APPLICATION_JSON_VALUE)
+        .body(request)
+        .when()
+        .post("/auth/reset-password")
+        .then()
+        .statusCode(204);
+    // spotless:on
+
+    verify(authService).resetPasswordWithToken(any(ResetPasswordRequest.class));
   }
 }

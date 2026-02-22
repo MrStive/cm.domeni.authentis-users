@@ -3,6 +3,7 @@ package cm.domeni.authentis_users.security;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,7 +19,9 @@ public class AccessTokenRevocationService {
   private static final String REVOKED_TOKEN_ERROR_URI =
       "https://authentis.domeni.cm/errors/revoked-access-token";
   private static final long DEFAULT_TTL_SECONDS = 300L;
+  private static final long CLEANUP_INTERVAL_WRITES = 128L;
   private final ConcurrentMap<String, Instant> revokedTokens = new ConcurrentHashMap<>();
+  private final AtomicLong revokeWritesCount = new AtomicLong(0L);
 
   public void revokeCurrentAccessTokenIfPresent() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -31,6 +34,7 @@ public class AccessTokenRevocationService {
             ? jwt.getExpiresAt()
             : Instant.now().plusSeconds(DEFAULT_TTL_SECONDS);
     revokedTokens.put(tokenKey(jwt), expiresAt);
+    cleanupExpiredEntriesPeriodically();
   }
 
   public void ensureNotRevoked(Jwt jwt) {
@@ -51,6 +55,15 @@ public class AccessTokenRevocationService {
             "Access token has been revoked",
             REVOKED_TOKEN_ERROR_URI);
     throw new OAuth2AuthenticationException(error);
+  }
+
+  private void cleanupExpiredEntriesPeriodically() {
+    long currentWrite = revokeWritesCount.incrementAndGet();
+    if (currentWrite % CLEANUP_INTERVAL_WRITES != 0L) {
+      return;
+    }
+    Instant now = Instant.now();
+    revokedTokens.entrySet().removeIf(entry -> !entry.getValue().isAfter(now));
   }
 
   private String tokenKey(Jwt jwt) {

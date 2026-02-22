@@ -132,6 +132,30 @@ paths:
           description: "Forbidden"
         "502":
           description: "Keycloak unavailable"
+  /auth/reset-password:
+    post:
+      tags:
+      - "Auth"
+      summary: "Reset password with token"
+      description: "Validates reset token and updates user password"
+      operationId: "resetPasswordWithToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "204":
+          description: "Password reset completed successfully"
+        "400":
+          description: "Invalid or expired reset token, or invalid password"
+        "401":
+          description: "Unauthorized client"
+        "403":
+          description: "Forbidden"
+        "502":
+          description: "Keycloak unavailable"
   /user:
     get:
       tags:
@@ -333,6 +357,20 @@ components:
           format: "int64"
         scope:
           type: "string"
+    ResetPasswordRequest:
+      required:
+      - "resetToken"
+      - "newPassword"
+      type: "object"
+      properties:
+        resetToken:
+          type: "string"
+          writeOnly: true
+        newPassword:
+          type: "string"
+          format: "password"
+          minLength: 6
+          writeOnly: true
   securitySchemes:
     bearerAuth:
       type: "http"

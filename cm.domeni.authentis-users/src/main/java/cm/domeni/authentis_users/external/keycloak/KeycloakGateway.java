@@ -19,4 +19,6 @@ public interface KeycloakGateway {
   void assignRoleToUser(UUID userId, String roleName);
 
   void removeRoleFromUser(UUID userId, String roleName);
+
+  void resetPassword(String userId, String newPassword);
 }

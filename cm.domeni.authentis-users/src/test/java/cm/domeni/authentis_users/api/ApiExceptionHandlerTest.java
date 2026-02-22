@@ -3,6 +3,7 @@ package cm.domeni.authentis_users.api;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import cm.domeni.authentis_users.exception.InvalidRefreshTokenException;
+import cm.domeni.authentis_users.exception.InvalidResetTokenException;
 import cm.domeni.authentis_users.exception.KeycloakOperationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -51,5 +52,15 @@ class ApiExceptionHandlerTest {
 
     assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     assertThat(problemDetail.getProperties()).containsEntry("upstreamStatus", 400);
+  }
+
+  @Test
+  void shouldMapInvalidResetTokenToBadRequest() {
+    ProblemDetail problemDetail =
+        handler.handleInvalidResetTokenException(
+            new InvalidResetTokenException("Invalid or expired reset token"));
+
+    assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(problemDetail.getTitle()).isEqualTo("Invalid Reset Token");
   }
 }

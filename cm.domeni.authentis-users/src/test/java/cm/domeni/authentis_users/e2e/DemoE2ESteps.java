@@ -31,6 +31,7 @@ public class DemoE2ESteps {
   private Map<String, Object> userPayload;
   private Map<String, Object> rolePayload;
   private Map<String, Object> refreshTokenPayload;
+  private Map<String, Object> resetPasswordPayload;
   private Response latestResponse;
   private UUID lastCreatedDemoId;
   private UUID lastRegisteredUserId;
@@ -131,6 +132,13 @@ public class DemoE2ESteps {
     refreshTokenPayload.put("refreshToken", refreshToken);
   }
 
+  @Given("^a reset password payload with token \"([^\"]*)\" and new password \"([^\"]*)\"$")
+  public void aResetPasswordPayloadWithTokenAndNewPassword(String resetToken, String newPassword) {
+    resetPasswordPayload = new LinkedHashMap<>();
+    resetPasswordPayload.put("resetToken", resetToken);
+    resetPasswordPayload.put("newPassword", newPassword);
+  }
+
   @When("^I call POST /role with scope \"([^\"]*)\"$")
   public void iCallPostRoleWithScope(String scope) {
     latestResponse =
@@ -161,6 +169,16 @@ public class DemoE2ESteps {
             .body(refreshTokenPayload)
             .when()
             .post("/auth/logout");
+  }
+
+  @When("^I call POST /auth/reset-password$")
+  public void iCallPostAuthResetPassword() {
+    latestResponse =
+        RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(resetPasswordPayload)
+            .when()
+            .post("/auth/reset-password");
   }
 
   @Given("^an authenticated access token$")

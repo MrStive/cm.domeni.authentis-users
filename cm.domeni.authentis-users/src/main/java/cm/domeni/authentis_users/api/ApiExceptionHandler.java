@@ -1,6 +1,7 @@
 package cm.domeni.authentis_users.api;
 
 import cm.domeni.authentis_users.exception.InvalidRefreshTokenException;
+import cm.domeni.authentis_users.exception.InvalidResetTokenException;
 import cm.domeni.authentis_users.exception.KeycloakOperationException;
 import cm.domeni.authentis_users.exception.UserAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserCanNotCreateException;
@@ -48,6 +49,15 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     problemDetail.setTitle("Invalid Refresh Token");
     problemDetail.setType(URI.create("https://authentis.domeni.cm/errors/invalid-refresh-token"));
+    return problemDetail;
+  }
+
+  @ExceptionHandler(InvalidResetTokenException.class)
+  ProblemDetail handleInvalidResetTokenException(InvalidResetTokenException e) {
+    ProblemDetail problemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    problemDetail.setTitle("Invalid Reset Token");
+    problemDetail.setType(URI.create("https://authentis.domeni.cm/errors/invalid-reset-token"));
     return problemDetail;
   }
 
