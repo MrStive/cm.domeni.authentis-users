@@ -40,6 +40,7 @@ configurations {
 val springCloudVersion = "2024.0.0"
 val testContainerVersion = "1.20.4"
 val mapstructVersion = "1.6.3"
+val cucumberVersion = "7.20.1"
 tasks.withType<Test> {
     useJUnitPlatform()
 }
@@ -60,7 +61,7 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.eclipse.persistence:org.eclipse.persistence.jpa:4.0.2")
-    testImplementation("org.springframework.cloud:spring-cloud-starter-contract-stub-runner")
+    implementation("org.liquibase:liquibase-core")
 
     // Security
     implementation("org.springframework.boot:spring-boot-starter-security")
@@ -100,6 +101,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.junit.platform:junit-platform-suite:1.11.4")
+    testImplementation("org.wiremock:wiremock-standalone:3.13.1")
+    testImplementation("io.cucumber:cucumber-java:$cucumberVersion")
+    testImplementation("io.cucumber:cucumber-spring:$cucumberVersion")
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:$cucumberVersion")
+    testRuntimeOnly("com.h2database:h2")
 
     testImplementation("io.rest-assured:rest-assured:5.3.2")
     testImplementation("io.rest-assured:spring-mock-mvc:5.4.0")
@@ -154,6 +161,9 @@ tasks.test {
     useJUnitPlatform {
         excludeTags("e2e", "data")
     }
+    filter {
+        excludeTestsMatching("cm.domeni.authentis_users.e2e.*")
+    }
     jvmArgs("--enable-preview")
 }
 
@@ -162,6 +172,17 @@ tasks.register<Test>("dataTest") {
     dependsOn("assemble", "testClasses")
     useJUnitPlatform {
         includeTags("data")
+    }
+    jvmArgs("--enable-preview")
+}
+
+tasks.register<Test>("e2eTest") {
+    dependsOn("assemble", "testClasses")
+    useJUnitPlatform {
+        includeTags("e2e")
+    }
+    filter {
+        includeTestsMatching("cm.domeni.authentis_users.e2e.CucumberE2ETest")
     }
     jvmArgs("--enable-preview")
 }

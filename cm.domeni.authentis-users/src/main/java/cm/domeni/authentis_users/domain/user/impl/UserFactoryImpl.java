@@ -5,11 +5,13 @@ import cm.domeni.authentis_users.exception.UserAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserCanNotCreateException;
 import cm.domeni.authentis_users.external.keycloak.KeycloakGateway;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @RequiredArgsConstructor
 public class UserFactoryImpl implements UserFactory {
   private final UserRepository userRepository;
   private final KeycloakGateway keycloakGateway;
+  private final PasswordEncoder passwordEncoder;
 
   @Override
   public User create(UserData data) throws UserAlreadyExistException, UserCanNotCreateException {
@@ -24,7 +26,7 @@ public class UserFactoryImpl implements UserFactory {
     var user = User.builder().id(new UserId(userId)).build();
     user.setUserName(data.userName());
     user.setEmail(data.email());
-    user.setPassword(data.password());
+    user.setPassword(toEncodedPassword(data.password()));
     user.setFirstName(data.firstName());
     user.setLastName(data.lastName());
     user.setBirthDate(data.birthDate());
@@ -39,5 +41,12 @@ public class UserFactoryImpl implements UserFactory {
               + " was triggered.",
           e);
     }
+  }
+
+  private Password toEncodedPassword(Password rawPassword) {
+    if (rawPassword == null || rawPassword.getValue() == null || rawPassword.getValue().isBlank()) {
+      throw new UserCanNotCreateException("Password is required.");
+    }
+    return new Password(passwordEncoder.encode(rawPassword.getValue()));
   }
 }

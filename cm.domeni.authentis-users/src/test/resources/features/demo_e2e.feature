@@ -1,0 +1,36 @@
+@e2e
+Feature: Users and roles end-to-end
+
+  Scenario: Create and fetch demos using the real database
+    Given a demo payload with name "Cucumber Demo"
+    When I call POST /demo as an authenticated user
+    Then the HTTP status should be 201
+    And the response should contain a valid UUID
+    And I should have a demo named "Cucumber Demo" in database
+    When I call GET /demo as an authenticated user
+    Then the HTTP status should be 200
+    And the demo list should contain name "Cucumber Demo"
+
+  Scenario: Register a user and fetch all users
+    Given a user payload with username "cucumber-user" and email "cucumber-user@example.test"
+    When I call POST /register
+    Then the HTTP status should be 201
+    And the response should contain a valid UUID
+    And I should have a user with username "cucumber-user" in database
+    When I call GET /user as an authenticated user
+    Then the HTTP status should be 200
+    And the users response should contain username "cucumber-user"
+
+  Scenario: Refresh token to obtain a new JWT
+    Given a refresh token payload with token "mock-refresh-token"
+    When I call POST /auth/refresh
+    Then the HTTP status should be 200
+    And the refresh response should contain token type "Bearer"
+
+  Scenario: Create role and assign/remove it to a registered user
+    Given a registered user with username "role-user"
+    And an existing role named "manager"
+    When I assign role "manager" to the registered user
+    Then the HTTP status should be 204
+    When I remove role "manager" from the registered user
+    Then the HTTP status should be 204

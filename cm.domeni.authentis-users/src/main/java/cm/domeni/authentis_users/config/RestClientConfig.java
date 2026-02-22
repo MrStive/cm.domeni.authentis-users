@@ -1,19 +1,20 @@
 package cm.domeni.authentis_users.config;
 
-import cm.domeni.authentis_users.security.SecurityUtils;
+import java.util.concurrent.TimeUnit;
 import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.web.context.WebApplicationContext;
 
 @Configuration
 public class RestClientConfig {
-  @Bean
+  private static final int CONNECTION_POOL_SIZE = 10;
+  private static final long CONNECTION_TIMEOUT_SECONDS = 5L;
+  private static final long SOCKET_TIMEOUT_SECONDS = 10L;
+
+  @Bean(destroyMethod = "close")
   public Keycloak serviceAccountKeycloakAdminClient(KeycloakAdminClientProperties properties) {
     return KeycloakBuilder.builder()
         .serverUrl(properties.getServerUrl())
@@ -21,19 +22,12 @@ public class RestClientConfig {
         .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
         .clientId(properties.getClientId())
         .clientSecret(properties.getClientSecret())
-        .resteasyClient(new ResteasyClientBuilderImpl().connectionPoolSize(10).build())
-        .build();
-  }
-
-  @Bean
-  @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-  public Keycloak delegatedKeycloakAdminClient(KeycloakAdminClientProperties properties) {
-    String token = SecurityUtils.getCurrentUserToken();
-    return KeycloakBuilder.builder()
-        .serverUrl(properties.getServerUrl())
-        .realm(properties.getRealm())
-        .authorization(token)
-        .resteasyClient(new ResteasyClientBuilderImpl().connectionPoolSize(10).build())
+        .resteasyClient(
+            new ResteasyClientBuilderImpl()
+                .connectionPoolSize(CONNECTION_POOL_SIZE)
+                .connectTimeout(CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(SOCKET_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .build())
         .build();
   }
 }

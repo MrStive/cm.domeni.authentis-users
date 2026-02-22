@@ -9,6 +9,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -23,17 +25,28 @@ public class SecurityConfig {
                 authorize
                     .requestMatchers(HttpMethod.POST, "/register")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/demo")
+                    .requestMatchers(HttpMethod.POST, "/auth/refresh")
                     .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/demo")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.POST, "/demo")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.GET, "/user")
+                    .authenticated()
                     .requestMatchers(HttpMethod.POST, "/role")
                     .hasAuthority(ROLE_CREATE)
-                    .requestMatchers(HttpMethod.PUT, "/users/{userId}/roles/{roleName}")
+                    .requestMatchers(HttpMethod.PUT, "/users/*/roles/*")
                     .hasAuthority(ROLE_ASSIGN)
-                    .requestMatchers(HttpMethod.DELETE, "/users/{userId}/roles/{roleName}")
+                    .requestMatchers(HttpMethod.DELETE, "/users/*/roles/*")
                     .hasAuthority(ROLE_DELETE)
                     .anyRequest()
                     .denyAll())
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()));
     return http.build();
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
   }
 }

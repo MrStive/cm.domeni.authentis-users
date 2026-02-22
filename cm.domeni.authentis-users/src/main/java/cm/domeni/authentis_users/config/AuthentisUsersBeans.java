@@ -22,6 +22,7 @@ import cm.domeni.authentis_users.repository.impl.UserRepositoryImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @RequiredArgsConstructor
 @Configuration
@@ -48,8 +49,11 @@ public class AuthentisUsersBeans {
   }
 
   @Bean
-  public UserFactory userFactory(UserRepository userRepository, KeycloakGateway keycloakGateway) {
-    return new UserFactoryImpl(userRepository, keycloakGateway);
+  public UserFactory userFactory(
+      UserRepository userRepository,
+      KeycloakGateway keycloakGateway,
+      PasswordEncoder passwordEncoder) {
+    return new UserFactoryImpl(userRepository, keycloakGateway, passwordEncoder);
   }
 
   @Bean

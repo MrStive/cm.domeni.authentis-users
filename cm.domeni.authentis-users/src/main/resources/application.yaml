@@ -6,25 +6,33 @@ spring:
     name: "authentis-users"
   datasource:
     url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:authentis-users-db}"
-    username: "${DB_USER:domeni.ngameni}"
-    password: "${DB_PASSWORD:authentis-users-password}"
+    username: "${DB_USER:authentis-users}"
+    password: "${DB_PASSWORD:change-me}"
   jpa:
     hibernate:
-      ddl-auto: "update"
+      ddl-auto: "validate"
     show-sql: true
+  liquibase:
+    change-log: "classpath:db/changelog/db.changelog-master.yaml"
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: "${ISSUER-URI:http://localhost:8080/realms/authentis-user}"
-          jwk-set-uri: "${jwtk-set-uri:http://localhost:8080/realms/authentis-user/protocol/openid-connect/certs}"
+          issuer-uri: "${ISSUER_URI:http://localhost:8080/realms/authentis-user}"
+          jwk-set-uri: "${JWK_SET_URI:http://localhost:8080/realms/authentis-user/protocol/openid-connect/certs}"
 logging:
   level:
-    org.springframework.security: "DEBUG"
-    org.springframework.web: "DEBUG"
+    org.springframework.security: "INFO"
+    org.springframework.web: "INFO"
 keycloak:
   admin-client:
     server-url: "${KEYCLOAK_SERVER_URL:http://localhost:8080}"
     realm: "${KEYCLOAK_REALM:authentis-user}"
     client-id: "${KEYCLOAK_ADMIN_CLIENT_ID:authentis-users}"
-    client-secret: "${KEYCLOAK_ADMIN_CLIENT_SECRET:9NUbJeoBdCvqdZIgrC3etSWdcCFn12GX}"
+    client-secret: "${KEYCLOAK_ADMIN_CLIENT_SECRET:change-me}"
+  token-client:
+    server-url: "${KEYCLOAK_SERVER_URL:http://localhost:8080}"
+    realm: "${KEYCLOAK_REALM:authentis-user}"
+    client-id: "${KEYCLOAK_TOKEN_CLIENT_ID:authentis-users}"
+    client-secret: "${KEYCLOAK_TOKEN_CLIENT_SECRET:change-me}"
+    read-timeout-seconds: 10
