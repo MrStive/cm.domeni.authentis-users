@@ -4,8 +4,8 @@ services:
     container_name: authentis-postgres_authenthis_users-db
     environment:
       POSTGRES_DB: authentis-users-db
-      POSTGRES_USER: domeni.ngameni
-      POSTGRES_PASSWORD: authentis-users-password
+      POSTGRES_USER: ${POSTGRES_AUTHENTIS_USER:-authentis-users}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTHENTIS_PASSWORD:-change-me}
     ports:
       - "5432:5432"
     volumes:
@@ -15,7 +15,7 @@ services:
         aliases:
           - postgres_authenthis_users
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U domeni.ngameni -d authentis-users-db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTHENTIS_USER:-authentis-users} -d authentis-users-db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,8 +24,8 @@ services:
     image: postgres:17
     container_name: postgres_keycloak
     environment:
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: domeni.ngameni
+      POSTGRES_USER: ${POSTGRES_KEYCLOAK_USER:-keycloak}
+      POSTGRES_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:-change-me}
       POSTGRES_DB: keycloak_db
     ports:
       - "5437:5432"
@@ -36,7 +36,7 @@ services:
         aliases:
           - postgres_keycloak
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_KEYCLOAK_USER:-keycloak} -d keycloak_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,8 +45,8 @@ services:
     image: postgres:17
     container_name: authetis_user_postgres_image
     environment:
-      POSTGRES_USER: domeni.ngameni
-      POSTGRES_PASSWORD: authentis-users-password
+      POSTGRES_USER: ${POSTGRES_IMAGE_USER:-authentis-users}
+      POSTGRES_PASSWORD: ${POSTGRES_IMAGE_PASSWORD:-change-me}
       POSTGRES_DB: authentis-users-db
     ports:
       - "5436:5432"
@@ -58,7 +58,7 @@ services:
           - postgres_image
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U domeni.ngameni -d authentis-users-db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_IMAGE_USER:-authentis-users} -d authentis-users-db"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,12 +67,12 @@ services:
     image: quay.io/keycloak/keycloak:latest
     container_name: authentis-users-keycloak
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: domeni.ngameni
-      KC_BOOTSTRAP_ADMIN_PASSWORD: authentis-users-password
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres_keycloak:5432/keycloak_db
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: domeni.ngameni
+      KC_DB_USERNAME: ${POSTGRES_KEYCLOAK_USER:-keycloak}
+      KC_DB_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:-change-me}
       KC_HOSTNAME: localhost
       KC_HTTP_ENABLED: "true"
       KC_ENV: production
@@ -91,8 +91,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: domeni.ngameni@authentisuser.cm
-      PGADMIN_DEFAULT_PASSWORD: domeni.ngameni
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change-me}
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
     ports:

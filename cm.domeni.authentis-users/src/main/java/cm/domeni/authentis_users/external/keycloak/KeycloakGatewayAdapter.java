@@ -1,11 +1,17 @@
 package cm.domeni.authentis_users.external.keycloak;
 
 import cm.domeni.authentis_users.config.KeycloakAdminClientProperties;
+import cm.domeni.authentis_users.domain.role.RoleData;
 import cm.domeni.authentis_users.domain.user.UserData;
+import cm.domeni.authentis_users.exception.InvalidResetTokenException;
+import cm.domeni.authentis_users.exception.KeycloakOperationException;
+import cm.domeni.authentis_users.exception.NotFoundException;
+import cm.domeni.authentis_users.exception.RoleAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserCanNotCreateException;
 import com.google.common.base.Splitter;
 import jakarta.ws.rs.ClientErrorException;
+import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.Collections;
@@ -18,119 +24,221 @@ import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
 public class KeycloakGatewayAdapter implements KeycloakGateway {
+  private static final int KEYCLOAK_UNAVAILABLE_STATUS = 502;
+  private static final int USER_ID_LOOKUP_MAX_ATTEMPTS = 3;
+  private static final long USER_ID_LOOKUP_DELAY_MS = 150L;
 
-  private final Keycloak serviceAccountKeycloakAdminClient;
-  private final Keycloak delegatedKeycloakAdminClient;
+  private final Keycloak keycloakAdminClient;
   private final String targetRealm;
 
   public KeycloakGatewayAdapter(
-      @Qualifier("serviceAccountKeycloakAdminClient") Keycloak serviceAccountKeycloakAdminClient,
-      @Qualifier("delegatedKeycloakAdminClient") Keycloak delegatedKeycloakAdminClient,
-      KeycloakAdminClientProperties properties) {
-    this.serviceAccountKeycloakAdminClient = serviceAccountKeycloakAdminClient;
-    this.delegatedKeycloakAdminClient = delegatedKeycloakAdminClient;
+      Keycloak serviceAccountKeycloakAdminClient, KeycloakAdminClientProperties properties) {
+    this.keycloakAdminClient = serviceAccountKeycloakAdminClient;
     this.targetRealm = properties.getRealm();
   }
 
   @Override
   public void assignRoleToUser(UUID userId, String roleName) {
+    String operation = "assign role";
     log.debug("Assigning role '{}' to user '{}'", roleName, userId);
     try {
       UserResource userResource =
-          delegatedKeycloakAdminClient.realm(targetRealm).users().get(userId.toString());
+          keycloakAdminClient.realm(targetRealm).users().get(userId.toString());
       RoleRepresentation roleRepresentation =
-          delegatedKeycloakAdminClient.realm(targetRealm).roles().get(roleName).toRepresentation();
+          keycloakAdminClient.realm(targetRealm).roles().get(roleName).toRepresentation();
       userResource.roles().realmLevel().add(Collections.singletonList(roleRepresentation));
       log.info("Successfully assigned role '{}' to user '{}'", roleName, userId);
-    } catch (jakarta.ws.rs.NotFoundException e) {
-      log.warn("User '{}' or role '{}' not found in Keycloak", userId, roleName);
-      throw new cm.domeni.authentis_users.exception.NotFoundException("User or role not found");
+    } catch (ClientErrorException e) {
+      int status = statusCode(e.getResponse());
+      if (status == 404) {
+        log.warn("User '{}' or role '{}' not found in Keycloak", userId, roleName);
+        throw new NotFoundException("User or role not found");
+      }
+      throw keycloakError(
+          operation,
+          status,
+          "Failed to assign role '%s' to user '%s'".formatted(roleName, userId),
+          e);
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(
+          operation, "Failed to assign role '%s' to user '%s'".formatted(roleName, userId), e);
+    } catch (Exception e) {
+      log.error(
+          "Unexpected Keycloak error while assigning role '{}' to user '{}'", roleName, userId, e);
+      throw keycloakError(
+          operation,
+          500,
+          "Unexpected error assigning role '%s' to user '%s'".formatted(roleName, userId),
+          e);
     }
   }
 
   @Override
   public void removeRoleFromUser(UUID userId, String roleName) {
+    String operation = "remove role";
     log.debug("Removing role '{}' from user '{}'", roleName, userId);
     try {
       UserResource userResource =
-          delegatedKeycloakAdminClient.realm(targetRealm).users().get(userId.toString());
+          keycloakAdminClient.realm(targetRealm).users().get(userId.toString());
       RoleRepresentation roleRepresentation =
-          delegatedKeycloakAdminClient.realm(targetRealm).roles().get(roleName).toRepresentation();
+          keycloakAdminClient.realm(targetRealm).roles().get(roleName).toRepresentation();
       userResource.roles().realmLevel().remove(Collections.singletonList(roleRepresentation));
       log.info("Successfully removed role '{}' from user '{}'", roleName, userId);
-    } catch (jakarta.ws.rs.NotFoundException e) {
-      log.warn("User '{}' or role '{}' not found in Keycloak", userId, roleName);
-      throw new cm.domeni.authentis_users.exception.NotFoundException("User or role not found");
+    } catch (ClientErrorException e) {
+      int status = statusCode(e.getResponse());
+      if (status == 404) {
+        log.warn("User '{}' or role '{}' not found in Keycloak", userId, roleName);
+        throw new NotFoundException("User or role not found");
+      }
+      throw keycloakError(
+          operation,
+          status,
+          "Failed to remove role '%s' from user '%s'".formatted(roleName, userId),
+          e);
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(
+          operation, "Failed to remove role '%s' from user '%s'".formatted(roleName, userId), e);
+    } catch (Exception e) {
+      log.error(
+          "Unexpected Keycloak error while removing role '{}' from user '{}'", roleName, userId, e);
+      throw keycloakError(
+          operation,
+          500,
+          "Unexpected error removing role '%s' from user '%s'".formatted(roleName, userId),
+          e);
     }
   }
 
   @Override
-  public String createRole(cm.domeni.authentis_users.domain.role.RoleData roleData)
-      throws cm.domeni.authentis_users.exception.RoleAlreadyExistException {
+  public void resetPassword(String userId, String newPassword) {
+    String operation = "reset password";
+    String normalizedUserId = requireNonBlank(userId, "user id");
+    String normalizedNewPassword = requireNonBlank(newPassword, "new password");
+    if (normalizedNewPassword.length() < 6) {
+      throw new IllegalArgumentException("Password must be at least 6 characters");
+    }
+
+    CredentialRepresentation credential = new CredentialRepresentation();
+    credential.setType(CredentialRepresentation.PASSWORD);
+    credential.setValue(normalizedNewPassword);
+    credential.setTemporary(false);
+
+    try {
+      UserResource userResource =
+          keycloakAdminClient.realm(targetRealm).users().get(normalizedUserId);
+      userResource.resetPassword(credential);
+      userResource.logout();
+      log.info("Successfully reset password for user '{}'", normalizedUserId);
+    } catch (ClientErrorException e) {
+      int status = statusCode(e.getResponse());
+      if (status == 404) {
+        throw new InvalidResetTokenException("Invalid or expired reset token");
+      }
+      throw keycloakError(
+          operation,
+          status,
+          "Failed to reset password for user '%s'".formatted(normalizedUserId),
+          e);
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(
+          operation,
+          "Cannot reach Keycloak while resetting password for '%s'".formatted(normalizedUserId),
+          e);
+    } catch (Exception e) {
+      throw keycloakError(
+          operation,
+          500,
+          "Unexpected error resetting password for '%s'".formatted(normalizedUserId),
+          e);
+    }
+  }
+
+  @Override
+  public String createRole(RoleData roleData) throws RoleAlreadyExistException {
+    String operation = "create role";
     RoleRepresentation roleRepresentation = new RoleRepresentation();
     roleRepresentation.setName(roleData.name());
     roleRepresentation.setDescription(roleData.description());
     roleRepresentation.setClientRole(false);
 
     try {
-      delegatedKeycloakAdminClient.realm(targetRealm).roles().create(roleRepresentation);
+      keycloakAdminClient.realm(targetRealm).roles().create(roleRepresentation);
       log.info("Role '{}' created in Keycloak.", roleData.name());
       RoleRepresentation createdRole =
-          delegatedKeycloakAdminClient
-              .realm(targetRealm)
-              .roles()
-              .get(roleData.name())
-              .toRepresentation();
+          keycloakAdminClient.realm(targetRealm).roles().get(roleData.name()).toRepresentation();
       return createdRole.getId();
     } catch (ClientErrorException e) {
-      if (e.getResponse().getStatus() == 409) {
-        throw new cm.domeni.authentis_users.exception.RoleAlreadyExistException(
-            "Role already exists: {}%s".formatted(roleData.name()));
+      int status = statusCode(e.getResponse());
+      if (status == 409) {
+        throw new RoleAlreadyExistException("Role already exists: %s".formatted(roleData.name()));
       }
-      log.error(
-          "Keycloak error while creating role. Status: {}, Reason: {}",
-          e.getResponse().getStatus(),
-          e.getResponse().getStatusInfo().getReasonPhrase());
-      throw new RuntimeException(
-          "Keycloak error failed with status: %d".formatted(e.getResponse().getStatus()));
+      throw keycloakError(
+          operation, status, "Failed to create role '%s'".formatted(roleData.name()), e);
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(
+          operation, "Failed to create role '%s'".formatted(roleData.name()), e);
+    } catch (Exception e) {
+      throw keycloakError(
+          operation, 500, "Unexpected error creating role '%s'".formatted(roleData.name()), e);
     }
   }
 
   @Override
   public Optional<String> createUser(UserData userData)
       throws UserAlreadyExistException, UserCanNotCreateException {
-    log.debug("Creating user '{}' in Keycloak", userData.userName().getValue().trim());
-    System.out.println("Creating user '{}' in Keycloak");
-    String username = userData.userName().getValue().trim();
+    String operation = "create user";
+    String username =
+        requireNonBlank(
+            userData.userName() != null ? userData.userName().getValue() : null, "username");
+    log.debug("Creating user '{}' in Keycloak", username);
     UserRepresentation userToCreate = buildUserRepresentation(userData, username);
 
-    try (Response response =
-        serviceAccountKeycloakAdminClient.realm(targetRealm).users().create(userToCreate)) {
+    try (Response response = keycloakAdminClient.realm(targetRealm).users().create(userToCreate)) {
+      int status = response.getStatus();
       if (response.getStatusInfo().getFamily() == Response.Status.Family.SUCCESSFUL) {
-        URI location = response.getLocation();
-        if (location != null) {
-          return Optional.of(extractUserIdFromLocation(location.toString()));
+        Optional<String> userIdFromLocation = extractUserIdFromLocation(response.getLocation());
+        if (userIdFromLocation.isPresent()) {
+          return userIdFromLocation;
         }
-        // Should not happen if status is 201, but as a fallback...
-        log.warn("User created in Keycloak but location header was missing.");
-        return Optional.empty();
-      } else {
-        if (response.getStatus() == 409) {
-          throw new UserAlreadyExistException("User already exists: %s".formatted(username));
+
+        log.warn(
+            "User '{}' created in Keycloak but location header was missing. Trying fallback"
+                + " lookup.",
+            username);
+        Optional<String> recoveredUserId = lookupCreatedUserIdByUsername(username);
+        if (recoveredUserId.isPresent()) {
+          return recoveredUserId;
         }
-        log.error(
-            "Keycloak error while creating user. Status: {}, Reason: {}",
-            response.getStatus(),
-            response.getStatusInfo().getReasonPhrase());
+
         throw new UserCanNotCreateException(
-            "Keycloak error failed with status: %d".formatted(response.getStatus()), null);
+            "User was created in Keycloak but its id could not be resolved. Manual verification is"
+                + " required.");
       }
+
+      if (status == 409) {
+        throw new UserAlreadyExistException("User already exists: %s".formatted(username));
+      }
+      if (status == 400) {
+        throw new IllegalArgumentException("Invalid user data for Keycloak user creation");
+      }
+      throw keycloakError(
+          operation, status, "Failed to create user '%s' in Keycloak".formatted(username), null);
+    } catch (UserAlreadyExistException e) {
+      throw e;
+    } catch (IllegalArgumentException e) {
+      throw e;
+    } catch (KeycloakOperationException e) {
+      throw e;
+    } catch (UserCanNotCreateException e) {
+      throw e;
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(
+          operation, "Cannot reach Keycloak while creating user '%s'".formatted(username), e);
     } catch (Exception e) {
       log.error("Unexpected error creating user in Keycloak", e);
       throw new UserCanNotCreateException("Unexpected error creating user in Keycloak", e);
@@ -140,8 +248,26 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   @Override
   public void deleteUser(String userId) {
     try {
-      serviceAccountKeycloakAdminClient.realm(targetRealm).users().get(userId).remove();
+      keycloakAdminClient.realm(targetRealm).users().get(userId).remove();
       log.info("Compensating action: successfully deleted Keycloak user '{}'", userId);
+    } catch (ClientErrorException e) {
+      int status = statusCode(e.getResponse());
+      if (status == 404) {
+        log.warn(
+            "Compensating action skipped: Keycloak user '{}' already absent (status 404).", userId);
+        return;
+      }
+      log.error(
+          "Failed to delete user '{}' during compensating transaction. Keycloak status: {}",
+          userId,
+          status,
+          e);
+    } catch (ProcessingException e) {
+      log.error(
+          "Failed to delete user '{}' during compensating transaction due to Keycloak"
+              + " connectivity issue.",
+          userId,
+          e);
     } catch (Exception e) {
       log.error(
           "Failed to delete user '{}' during compensating transaction. Manual cleanup may be"
@@ -152,19 +278,24 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   }
 
   private UserRepresentation buildUserRepresentation(UserData userData, String username) {
-    if (username.isEmpty()) {
-      throw new IllegalArgumentException("Username is required");
-    }
-    String password = userData.password().getValue();
+    String email =
+        requireNonBlank(userData.email() != null ? userData.email().getValue() : null, "email");
+    String password =
+        requireNonBlank(
+            userData.password() != null ? userData.password().getValue() : null, "password");
     if (password.length() < 6) {
       throw new IllegalArgumentException("Password must be at least 6 characters");
     }
 
     UserRepresentation user = new UserRepresentation();
     user.setUsername(username);
-    user.setEmail(userData.email().getValue());
-    user.setFirstName(userData.firstName().getValue());
-    user.setLastName(userData.lastName().getValue());
+    user.setEmail(email);
+    if (userData.firstName() != null) {
+      user.setFirstName(userData.firstName().getValue());
+    }
+    if (userData.lastName() != null) {
+      user.setLastName(userData.lastName().getValue());
+    }
     user.setEnabled(true);
     user.setEmailVerified(false);
 
@@ -176,11 +307,79 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
     return user;
   }
 
-  private String extractUserIdFromLocation(String location) {
-    List<String> parts = Splitter.on("/").splitToList(location);
-    if (!parts.isEmpty()) {
-      return parts.getLast();
+  private Optional<String> extractUserIdFromLocation(URI location) {
+    if (location == null) {
+      return Optional.empty();
     }
-    throw new RuntimeException("Unable to extract user ID from location: %s".formatted(location));
+    String locationAsString = location.toString();
+    List<String> parts = Splitter.on("/").omitEmptyStrings().splitToList(locationAsString);
+    if (!parts.isEmpty()) {
+      return Optional.of(parts.getLast());
+    }
+    return Optional.empty();
+  }
+
+  private Optional<String> lookupCreatedUserIdByUsername(String username) {
+    for (int attempt = 1; attempt <= USER_ID_LOOKUP_MAX_ATTEMPTS; attempt++) {
+      try {
+        List<UserRepresentation> users =
+            keycloakAdminClient.realm(targetRealm).users().searchByUsername(username, true);
+        Optional<String> userId =
+            users.stream()
+                .filter(user -> username.equals(user.getUsername()))
+                .map(UserRepresentation::getId)
+                .filter(id -> id != null && !id.isBlank())
+                .findFirst();
+        if (userId.isPresent()) {
+          return userId;
+        }
+      } catch (ClientErrorException e) {
+        int status = statusCode(e.getResponse());
+        throw keycloakError(
+            "lookup created user",
+            status,
+            "Failed to resolve created user id for '%s'".formatted(username),
+            e);
+      } catch (ProcessingException e) {
+        throw keycloakUnavailable(
+            "lookup created user",
+            "Cannot reach Keycloak while resolving user id for '%s'".formatted(username),
+            e);
+      }
+      pauseBeforeNextLookupAttempt(attempt);
+    }
+    return Optional.empty();
+  }
+
+  private void pauseBeforeNextLookupAttempt(int attempt) {
+    if (attempt >= USER_ID_LOOKUP_MAX_ATTEMPTS) {
+      return;
+    }
+    try {
+      Thread.sleep(USER_ID_LOOKUP_DELAY_MS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private int statusCode(Response response) {
+    return response != null ? response.getStatus() : 500;
+  }
+
+  private KeycloakOperationException keycloakError(
+      String operation, int upstreamStatus, String message, Throwable cause) {
+    return new KeycloakOperationException(operation, upstreamStatus, message, cause);
+  }
+
+  private KeycloakOperationException keycloakUnavailable(
+      String operation, String message, Throwable cause) {
+    return new KeycloakOperationException(operation, KEYCLOAK_UNAVAILABLE_STATUS, message, cause);
+  }
+
+  private String requireNonBlank(String value, String fieldName) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException("%s is required".formatted(fieldName));
+    }
+    return value.trim();
   }
 }

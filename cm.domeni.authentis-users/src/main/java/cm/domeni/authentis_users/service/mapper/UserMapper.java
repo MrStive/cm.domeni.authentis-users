@@ -27,7 +27,6 @@ public interface UserMapper {
   @Mapping(target = "id", source = "id.value")
   @Mapping(target = "userName", source = "userName.value")
   @Mapping(target = "email", source = "email.value")
-  @Mapping(target = "password", source = "password.value")
   @Mapping(target = "firstName", source = "firstName.value")
   @Mapping(target = "lastName", source = "lastName.value")
   @Mapping(target = "birthDate", source = "birthDate.value")

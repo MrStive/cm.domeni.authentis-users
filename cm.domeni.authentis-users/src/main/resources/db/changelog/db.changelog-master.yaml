@@ -1,0 +1,88 @@
+---
+databaseChangeLog:
+- changeSet:
+    id: "001-create-t-demo"
+    author: "codex"
+    preConditions:
+      onFail: "MARK_RAN"
+      not:
+        tableExists:
+          tableName: "t_demo"
+    changes:
+    - createTable:
+        tableName: "t_demo"
+        columns:
+        - column:
+            name: "c_id"
+            type: "varchar(255)"
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: "pk_t_demo"
+        - column:
+            name: "c_name"
+            type: "varchar(255)"
+        - column:
+            name: "c_version"
+            type: "bigint"
+            defaultValueNumeric: 0
+            constraints:
+              nullable: false
+        - column:
+            name: "c_deleted"
+            type: "boolean"
+            defaultValueBoolean: false
+            constraints:
+              nullable: false
+- changeSet:
+    id: "002-create-t-user"
+    author: "codex"
+    preConditions:
+      onFail: "MARK_RAN"
+      not:
+        tableExists:
+          tableName: "t_user"
+    changes:
+    - createTable:
+        tableName: "t_user"
+        columns:
+        - column:
+            name: "c_id"
+            type: "varchar(255)"
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: "pk_t_user"
+        - column:
+            name: "c_user_name"
+            type: "varchar(255)"
+        - column:
+            name: "c_email"
+            type: "varchar(255)"
+        - column:
+            name: "c_password"
+            type: "varchar(255)"
+        - column:
+            name: "c_first_name"
+            type: "varchar(255)"
+        - column:
+            name: "c_last_name"
+            type: "varchar(255)"
+        - column:
+            name: "c_birth_date"
+            type: "date"
+        - column:
+            name: "c_city"
+            type: "varchar(255)"
+        - column:
+            name: "c_version"
+            type: "bigint"
+            defaultValueNumeric: 0
+            constraints:
+              nullable: false
+        - column:
+            name: "c_deleted"
+            type: "boolean"
+            defaultValueBoolean: false
+            constraints:
+              nullable: false

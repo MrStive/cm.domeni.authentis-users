@@ -4,7 +4,7 @@ spring:
     name: "authentis-users"
   jpa:
     hibernate:
-      ddl-auto: "update"
+      ddl-auto: "validate"
     show-sql: true
     database-platform: "org.hibernate.dialect.PostgreSQLDialect"
   datasource:
@@ -15,6 +15,13 @@ keycloak:
     server-url: "http://localhost:8080/realms/"
     realm: "authentis-user"
     client-id: "authentis-user"
-    client-secret: "authentis-users-password"
+    client-secret: "change-me"
+  token-client:
+    server-url: "http://localhost:8080"
+    realm: "authentis-user"
+    client-id: "authentis-users"
+    client-secret: "change-me"
+    reset-token-required-scope: "password:reset"
+    read-timeout-seconds: 5
 server:
   port: 8089
