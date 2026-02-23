@@ -255,6 +255,40 @@ public class CucumberSpringConfiguration {
     WIREMOCK.stubFor(
         delete(urlPathMatching("/admin/realms/%s/users/[^/]+/role-mappings/realm".formatted(REALM)))
             .willReturn(aResponse().withStatus(204)));
+
+    stubKeycloakUserById(
+        FIXED_USER_ID, "cucumber-user", "cucumber-user@example.test", "Integration", "Test", true);
+  }
+
+  public static void stubKeycloakUserById(
+      String userId,
+      String username,
+      String email,
+      String firstName,
+      String lastName,
+      boolean enabled) {
+    startWireMockIfNeeded();
+    WIREMOCK.stubFor(
+        get(urlEqualTo("/admin/realms/%s/users/%s".formatted(REALM, userId)))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": %s,
+                      "username": %s,
+                      "email": %s,
+                      "firstName": %s,
+                      "lastName": %s,
+                      "enabled": %s
+                    }
+                    """
+                        .formatted(
+                            jsonString(userId),
+                            jsonString(username),
+                            jsonString(email),
+                            jsonString(firstName),
+                            jsonString(lastName),
+                            enabled))));
   }
 
   private static String issuerUri() {
@@ -277,5 +311,12 @@ public class CucumberSpringConfiguration {
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("Cannot generate RSA key for e2e tests", e);
     }
+  }
+
+  private static String jsonString(String value) {
+    if (value == null) {
+      return "null";
+    }
+    return "\"%s\"".formatted(value.replace("\\", "\\\\").replace("\"", "\\\""));
   }
 }

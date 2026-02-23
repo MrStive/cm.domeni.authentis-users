@@ -5,6 +5,7 @@ import cm.domeni.authentis_users.domain.user.UserData;
 import cm.domeni.authentis_users.exception.RoleAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserAlreadyExistException;
 import cm.domeni.authentis_users.exception.UserCanNotCreateException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,4 +22,8 @@ public interface KeycloakGateway {
   void removeRoleFromUser(UUID userId, String roleName);
 
   void resetPassword(String userId, String newPassword);
+
+  Optional<KeycloakUserSnapshot> findUserById(String userId);
+
+  List<KeycloakUserSnapshot> fetchAllUsers(int pageSize);
 }

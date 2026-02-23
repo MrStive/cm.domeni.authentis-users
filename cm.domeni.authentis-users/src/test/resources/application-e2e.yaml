@@ -12,6 +12,11 @@ spring:
   liquibase:
     change-log: "classpath:db/changelog/db.changelog-master.yaml"
 keycloak:
+  sync:
+    enabled: false
+    webhook-enabled: true
+    webhook-secret: "e2e-webhook-secret"
+    webhook-secret-header: "X-Keycloak-Webhook-Secret"
   token-client:
     server-url: "http://localhost:8080"
     realm: "authentis-user"
