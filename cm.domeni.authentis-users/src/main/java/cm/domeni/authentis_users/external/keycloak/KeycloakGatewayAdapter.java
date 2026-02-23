@@ -14,6 +14,7 @@ import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -277,6 +278,62 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
     }
   }
 
+  @Override
+  public Optional<KeycloakUserSnapshot> findUserById(String userId) {
+    String operation = "find user";
+    String normalizedUserId = requireNonBlank(userId, "user id");
+    try {
+      UserRepresentation userRepresentation =
+          keycloakAdminClient.realm(targetRealm).users().get(normalizedUserId).toRepresentation();
+      return toUserSnapshot(userRepresentation);
+    } catch (ClientErrorException e) {
+      int status = statusCode(e.getResponse());
+      if (status == 404) {
+        return Optional.empty();
+      }
+      throw keycloakError(
+          operation,
+          status,
+          "Failed to fetch user '%s' from Keycloak".formatted(normalizedUserId),
+          e);
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(
+          operation,
+          "Cannot reach Keycloak while fetching user '%s'".formatted(normalizedUserId),
+          e);
+    }
+  }
+
+  @Override
+  public List<KeycloakUserSnapshot> fetchAllUsers(int pageSize) {
+    String operation = "fetch users";
+    int normalizedPageSize = Math.max(1, pageSize);
+    List<KeycloakUserSnapshot> users = new ArrayList<>();
+    int offset = 0;
+
+    try {
+      while (true) {
+        List<UserRepresentation> page =
+            keycloakAdminClient.realm(targetRealm).users().list(offset, normalizedPageSize);
+        if (page == null || page.isEmpty()) {
+          return users;
+        }
+
+        page.stream().map(this::toUserSnapshot).flatMap(Optional::stream).forEach(users::add);
+
+        if (page.size() < normalizedPageSize) {
+          return users;
+        }
+        offset += normalizedPageSize;
+      }
+    } catch (ClientErrorException e) {
+      int status = statusCode(e.getResponse());
+      throw keycloakError(operation, status, "Failed to fetch Keycloak users", e);
+    } catch (ProcessingException e) {
+      throw keycloakUnavailable(operation, "Cannot reach Keycloak while fetching users", e);
+    }
+  }
+
   private UserRepresentation buildUserRepresentation(UserData userData, String username) {
     String email =
         requireNonBlank(userData.email() != null ? userData.email().getValue() : null, "email");
@@ -379,6 +436,32 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   private String requireNonBlank(String value, String fieldName) {
     if (value == null || value.isBlank()) {
       throw new IllegalArgumentException("%s is required".formatted(fieldName));
+    }
+    return value.trim();
+  }
+
+  private Optional<KeycloakUserSnapshot> toUserSnapshot(UserRepresentation userRepresentation) {
+    if (userRepresentation == null) {
+      return Optional.empty();
+    }
+    String id = userRepresentation.getId();
+    if (id == null || id.isBlank()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        new KeycloakUserSnapshot(
+            id.trim(),
+            normalizeNullable(userRepresentation.getUsername()),
+            normalizeNullable(userRepresentation.getEmail()),
+            normalizeNullable(userRepresentation.getFirstName()),
+            normalizeNullable(userRepresentation.getLastName()),
+            Boolean.TRUE.equals(userRepresentation.isEnabled())));
+  }
+
+  private String normalizeNullable(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
     }
     return value.trim();
   }

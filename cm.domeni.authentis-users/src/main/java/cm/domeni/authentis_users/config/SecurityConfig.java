@@ -37,6 +37,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/reset-password")
                     .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/internal/keycloak/events")
+                    .permitAll()
                     .requestMatchers(HttpMethod.GET, "/demo")
                     .authenticated()
                     .requestMatchers(HttpMethod.POST, "/demo")

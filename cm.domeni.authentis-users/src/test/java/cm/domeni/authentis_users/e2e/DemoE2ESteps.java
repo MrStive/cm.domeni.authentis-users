@@ -23,6 +23,9 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 public class DemoE2ESteps {
+  private static final String KEYCLOAK_WEBHOOK_SECRET = "e2e-webhook-secret";
+  private static final String KEYCLOAK_WEBHOOK_SECRET_HEADER = "X-Keycloak-Webhook-Secret";
+
   @LocalServerPort private int serverPort;
   @Autowired private JdbcClient jdbcClient;
   @Autowired private ObjectMapper objectMapper;
@@ -225,6 +228,14 @@ public class DemoE2ESteps {
     assertEquals(201, latestResponse.statusCode(), "Role creation must succeed in setup");
   }
 
+  @Given("Keycloak profile for this user is updated to username {string} and email {string}")
+  public void keycloakProfileForThisUserIsUpdatedToUsernameAndEmail(
+      String updatedUserName, String updatedEmail) {
+    assertNotNull(lastRegisteredUserId, "Missing registered user id");
+    CucumberSpringConfiguration.stubKeycloakUserById(
+        lastRegisteredUserId.toString(), updatedUserName, updatedEmail, "Synced", "User", true);
+  }
+
   @When("^I assign role \"([^\"]*)\" to the registered user$")
   public void iAssignRoleToTheRegisteredUser(String roleName) {
     assertNotNull(lastRegisteredUserId, "Missing registered user id");
@@ -247,6 +258,22 @@ public class DemoE2ESteps {
             .oauth2(CucumberSpringConfiguration.issueToken("role:delete"))
             .when()
             .delete("/users/{userId}/roles/{roleName}", lastRegisteredUserId, roleName);
+  }
+
+  @When("^I call POST /internal/keycloak/events with this user id$")
+  public void iCallPostInternalKeycloakEventsWithThisUserId() {
+    assertNotNull(lastRegisteredUserId, "Missing registered user id");
+    Map<String, Object> keycloakEventPayload = new LinkedHashMap<>();
+    keycloakEventPayload.put("resourceType", "USER");
+    keycloakEventPayload.put("resourcePath", "users/%s".formatted(lastRegisteredUserId));
+
+    latestResponse =
+        RestAssured.given()
+            .contentType(ContentType.JSON)
+            .header(KEYCLOAK_WEBHOOK_SECRET_HEADER, KEYCLOAK_WEBHOOK_SECRET)
+            .body(keycloakEventPayload)
+            .when()
+            .post("/internal/keycloak/events");
   }
 
   @Then("the HTTP status should be {int}")
@@ -298,6 +325,23 @@ public class DemoE2ESteps {
     assumeThat(rows).as("User row should be present in database").isGreaterThan(0L);
     assertThat(rows)
         .as("Expected user '%s' persisted in database".formatted(userName))
+        .isGreaterThan(0L);
+  }
+
+  @Then("^I should have a user with email \"([^\"]*)\" in database$")
+  public void iShouldHaveAUserWithEmailInDatabase(String email) {
+    assumeThat(lastRegisteredUserId).as("Registered user id must be present").isNotNull();
+    Long rows =
+        jdbcClient
+            .sql("SELECT COUNT(*) FROM t_user WHERE c_id = :id AND c_email = :email")
+            .param("id", lastRegisteredUserId.toString())
+            .param("email", email)
+            .query(Long.class)
+            .single();
+    assumeThat(rows).as("User query result must exist").isNotNull();
+    assumeThat(rows).as("User row should be present in database").isGreaterThan(0L);
+    assertThat(rows)
+        .as("Expected user email '%s' persisted in database".formatted(email))
         .isGreaterThan(0L);
   }
 

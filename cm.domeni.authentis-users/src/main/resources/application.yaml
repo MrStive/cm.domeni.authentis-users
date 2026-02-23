@@ -37,3 +37,10 @@ keycloak:
     client-secret: "${KEYCLOAK_TOKEN_CLIENT_SECRET:change-me}"
     reset-token-required-scope: "${KEYCLOAK_RESET_TOKEN_REQUIRED_SCOPE:password:reset}"
     read-timeout-seconds: 10
+  sync:
+    enabled: "${KEYCLOAK_SYNC_ENABLED:true}"
+    cron: "${KEYCLOAK_SYNC_CRON:0 */5 * * * *}"
+    page-size: "${KEYCLOAK_SYNC_PAGE_SIZE:100}"
+    webhook-enabled: "${KEYCLOAK_SYNC_WEBHOOK_ENABLED:false}"
+    webhook-secret: "${KEYCLOAK_SYNC_WEBHOOK_SECRET:}"
+    webhook-secret-header: "${KEYCLOAK_SYNC_WEBHOOK_SECRET_HEADER:X-Keycloak-Webhook-Secret}"
