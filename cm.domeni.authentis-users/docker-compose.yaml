@@ -87,6 +87,39 @@ services:
       - microservices_network
     command: start
 
+  authentis-users:
+    image: eclipse-temurin:25-jre
+    container_name: authentis-users-app
+    working_dir: /workspace
+    environment:
+      DB_HOST: postgres_authenthis_users
+      DB_PORT: 5432
+      DB_NAME: authentis-users-db
+      DB_USER: ${POSTGRES_AUTHENTIS_USER:-authentis-users}
+      DB_PASSWORD: ${POSTGRES_AUTHENTIS_PASSWORD:-change-me}
+      ISSUER_URI: ${ISSUER_URI:-http://keycloak:8080/realms/authentis-user}
+      JWK_SET_URI: ${JWK_SET_URI:-http://keycloak:8080/realms/authentis-user/protocol/openid-connect/certs}
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-authentis-user}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+    volumes:
+      - ./:/workspace
+    depends_on:
+      postgres_authenthis_users:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    command:
+      [
+        "sh",
+        "-lc",
+        "JAR_PATH=$$(ls -1 build/libs/*.jar 2>/dev/null | head -n1); if [ -z \"$$JAR_PATH\" ]; then echo \"No jar found in build/libs. Run ./gradlew bootJar first.\"; exit 1; fi; exec java --enable-preview -XX:TieredStopAtLevel=1 -Dspring.output.ansi.enabled=always -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -jar \"$$JAR_PATH\"",
+      ]
+    ports:
+      - "8089:8089"
+    networks:
+      - microservices_network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin

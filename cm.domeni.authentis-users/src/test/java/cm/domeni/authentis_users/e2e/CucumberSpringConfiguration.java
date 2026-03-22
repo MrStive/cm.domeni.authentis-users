@@ -38,6 +38,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 @CucumberContextConfiguration
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -51,6 +53,9 @@ public class CucumberSpringConfiguration {
   private static final String FIXED_ROLE_ID = "22222222-2222-2222-2222-222222222222";
   private static final String KEY_ID = "e2e-wiremock-key";
 
+  private static final KafkaContainer KAFKA =
+      new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.1"));
+
   private static final WireMockServer WIREMOCK =
       new WireMockServer(WireMockConfiguration.options().dynamicPort());
   private static final RSAKey RSA_KEY = generateRsaKey();
@@ -58,6 +63,7 @@ public class CucumberSpringConfiguration {
   @DynamicPropertySource
   static void registerDynamicProperties(DynamicPropertyRegistry registry) {
     startWireMockIfNeeded();
+    startKafkaIfNeeded();
     registry.add("keycloak.admin-client.server-url", WIREMOCK::baseUrl);
     registry.add("keycloak.admin-client.realm", () -> REALM);
     registry.add("keycloak.admin-client.client-id", () -> CLIENT_ID);
@@ -66,6 +72,7 @@ public class CucumberSpringConfiguration {
     registry.add("keycloak.token-client.realm", () -> REALM);
     registry.add("keycloak.token-client.client-id", () -> CLIENT_ID);
     registry.add("keycloak.token-client.client-secret", () -> CLIENT_SECRET);
+    registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
     registry.add(
         "spring.security.oauth2.resourceserver.jwt.issuer-uri",
         CucumberSpringConfiguration::issuerUri);
@@ -112,6 +119,12 @@ public class CucumberSpringConfiguration {
     }
     WIREMOCK.start();
     stubOidcAndKeycloakAdmin();
+  }
+
+  private static synchronized void startKafkaIfNeeded() {
+    if (!KAFKA.isRunning()) {
+      KAFKA.start();
+    }
   }
 
   private static void stubOidcAndKeycloakAdmin() {

@@ -11,36 +11,48 @@ buildscript {
 plugins {
     java
     id("application")
-    id("org.springframework.boot") version "3.4.2"
+    id("org.springframework.boot") version "3.4.13"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.openapi.generator") version "7.11.0"
     id("com.google.cloud.tools.jib") version "3.4.5"
     id("com.diffplug.spotless") version "6.25.0" apply true
-    id("net.ltgt.errorprone") version "3.1.0"
-    id("com.avast.gradle.docker-compose") version "0.16.11"
+    id("net.ltgt.errorprone") version "5.1.0"
+    id("com.avast.gradle.docker-compose") version "0.17.21"
 }
 
 application {
-    mainClass = "cm/domeni/authentis_users/AuthentisUsersApplication.java"
+    mainClass = "cm.domeni.authentis_users.AuthentisUsersApplication"
 }
 
 group = "cm.domeni.authentis-users"
 version = "0.0.1-SNAPSHOT"
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
-repositories { mavenCentral() }
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
 configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
     }
 }
-val springCloudVersion = "2024.0.0"
+val kapitaPlatformVersion =
+    providers
+        .gradleProperty("kapitaPlatformVersion")
+        .orElse(providers.environmentVariable("KAPITA_PLATFORM_VERSION"))
+        .orElse("0.1.1-SNAPSHOT")
+        .get()
+val springCloudVersion = "2024.0.3"
 val testContainerVersion = "1.20.4"
 val mapstructVersion = "1.6.3"
 val cucumberVersion = "7.20.1"
+val lombokVersion = "1.18.42"
+val errorProneVersion = "2.48.0"
+val nullAwayVersion = "0.13.1"
 tasks.withType<Test> {
     useJUnitPlatform()
 }
@@ -51,16 +63,17 @@ dependencyManagement {
     }
 }
 dependencies {
+    implementation(platform("com.domeni.kapita:kapita-platform-bom:$kapitaPlatformVersion"))
     compileOnly("jakarta.servlet:jakarta.servlet-api:6.0.0")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("com.domeni.kapita:kapita-jpa-eclipselink-starter")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.cloud:spring-cloud-starter")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.eclipse.persistence:org.eclipse.persistence.jpa:4.0.2")
+    implementation("org.springframework.kafka:spring-kafka")
     implementation("org.liquibase:liquibase-core")
 
     // Security
@@ -69,7 +82,6 @@ dependencies {
     implementation("org.keycloak:keycloak-admin-client:24.0.4")
     implementation("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0") // Added for Keycloak SDK
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.testcontainers:kafka:$testContainerVersion")
 
     // kafka
     testImplementation("org.testcontainers:kafka:$testContainerVersion")
@@ -79,8 +91,8 @@ dependencies {
     implementation("org.postgresql:postgresql")
     testImplementation("org.testcontainers:postgresql:$testContainerVersion")
     implementation("org.jspecify:jspecify:1.0.0")
-    errorprone("com.google.errorprone:error_prone_core:2.28.0")
-    errorprone("com.uber.nullaway:nullaway:0.10.25")
+    errorprone("com.google.errorprone:error_prone_core:$errorProneVersion")
+    errorprone("com.uber.nullaway:nullaway:$nullAwayVersion")
     // OPENAPI
     implementation("io.swagger:swagger-annotations:1.6.11")
     implementation("org.openapitools:jackson-databind-nullable:0.2.6")
@@ -88,10 +100,10 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-docker-compose")
     testImplementation("org.testcontainers:testcontainers:$testContainerVersion")
     // Lombok
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-    testCompileOnly("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    testCompileOnly("org.projectlombok:lombok:$lombokVersion")
+    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
 
     // Mapstruct
     implementation("org.mapstruct:mapstruct:$mapstructVersion")
@@ -154,7 +166,7 @@ tasks.named<JavaCompile>("compileJava") {
 
 tasks.named<JavaCompile>("compileTestJava") {
     options.compilerArgs.add("--enable-preview")
-    options.errorprone.isEnabled.set(false)
+    options.errorprone.enabled.set(false)
 }
 
 tasks.test {
@@ -169,6 +181,9 @@ tasks.test {
 
 tasks.register<Test>("dataTest") {
     ignoreFailures = true
+    val testSourceSet = sourceSets.named("test").get()
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
     dependsOn("assemble", "testClasses")
     useJUnitPlatform {
         includeTags("data")
@@ -177,6 +192,9 @@ tasks.register<Test>("dataTest") {
 }
 
 tasks.register<Test>("e2eTest") {
+    val testSourceSet = sourceSets.named("test").get()
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
     dependsOn("assemble", "testClasses")
     useJUnitPlatform {
         includeTags("e2e")
@@ -223,14 +241,52 @@ tasks.named<GenerateTask>("openApiGenerate") {
         generatedSourceCodeDir.deleteRecursively()
     }
     onlyIf {
+        val generatedLastModified = generatedSourceCodeDir.lastModified()
+        val templateLastModified = templateDir.orNull?.let { file(it).lastModified() } ?: 0L
         !generatedSourceCodeDir.exists() ||
-            file(inputSpec.get()).lastModified() > generatedSourceCodeDir.lastModified() ||
-            file(templateDir.get()).lastModified() > generatedSourceCodeDir.lastModified()
+            file(inputSpec.get()).lastModified() > generatedLastModified ||
+            templateLastModified > generatedLastModified
     }
+}
+
+tasks.register<GenerateTask>("mainDomainEventsOpenApiGenerate") {
+    generatorName.set("spring")
+    templateDir.set("$rootDir/openapi/templates/spring-boot")
+    inputSpec.set("$rootDir/openapi/domain-event.yaml")
+    outputDir.set(
+        layout.buildDirectory
+            .dir("generated/sources/openapi")
+            .get()
+            .asFile.path,
+    )
+    modelPackage.set("cm.domeni.authentis_users.event.dto")
+    configOptions.set(
+        mapOf(
+            "dateLibrary" to "java8-localdatetime",
+            "library" to "spring-boot",
+            "interfaceOnly" to "true",
+            "useTags" to "true",
+            "skipDefaultInterface" to "true",
+            "useSpringBoot3" to "true",
+        ),
+    )
+    typeMappings.set(
+        mapOf(
+            "time" to "java.time.LocalTime",
+        ),
+    )
+    val generatedSourceCodeDir =
+        file(outputDir.get() + "/src/main/java/cm/domeni/authentis_users/event/dto")
+
+    doFirst {
+        generatedSourceCodeDir.deleteRecursively()
+    }
+    outputs.upToDateWhen { false }
 }
 
 tasks.compileJava.get().dependsOn(
     tasks["openApiGenerate"],
+    tasks["mainDomainEventsOpenApiGenerate"],
 )
 
 sourceSets.main
@@ -248,7 +304,7 @@ jib {
     val nexusUsername = System.getenv("NEXUS_CREDENTIALS_USR") ?: ""
     val nexusPassword = System.getenv("NEXUS_CREDENTIALS_PSW") ?: ""
     from {
-        image = "eclipse-temurin:21-jdk"
+        image = "eclipse-temurin:25-jdk"
     }
     to {
         image = "$imageNamePrefix/${project.name}"

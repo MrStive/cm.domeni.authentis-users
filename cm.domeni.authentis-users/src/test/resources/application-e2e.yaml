@@ -11,6 +11,15 @@ spring:
     database-platform: "org.hibernate.dialect.H2Dialect"
   liquibase:
     change-log: "classpath:db/changelog/db.changelog-master.yaml"
+  kafka:
+    producer:
+      acks: "all"
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        delivery.timeout.ms: 120000
+        linger.ms: 5
 keycloak:
   sync:
     enabled: false
@@ -24,3 +33,9 @@ keycloak:
     client-secret: "test-client-secret"
     reset-token-required-scope: "password:reset"
     read-timeout-seconds: 5
+events:
+  outbox:
+    poll-interval-ms: 300
+    batch-size: 20
+    max-retries: 3
+    retry-backoff-ms: 300

@@ -1,23 +1,25 @@
 package cm.domeni.authentis_users.domain.user;
 
-import cm.domeni.authentis_users.domain.AuthentisUsersEntityBase;
+import com.domeni.kapita.domain.core.SoftDeleteJpaEntity;
 import jakarta.persistence.*;
 import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldNameConstants;
-import lombok.experimental.SuperBuilder;
 
 @FieldNameConstants
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity
-@SuperBuilder
+@Builder
 @Table(name = "t_user")
-public class User extends AuthentisUsersEntityBase<UserId> {
+public class User extends SoftDeleteJpaEntity<UserId> {
 
   @Builder.Default
   @EmbeddedId
