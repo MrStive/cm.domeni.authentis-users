@@ -86,3 +86,82 @@ databaseChangeLog:
             defaultValueBoolean: false
             constraints:
               nullable: false
+- changeSet:
+    id: "003-create-t-outbox-event"
+    author: "codex"
+    preConditions:
+      onFail: "MARK_RAN"
+      not:
+        tableExists:
+          tableName: "t_outbox_event"
+    changes:
+    - createTable:
+        tableName: "t_outbox_event"
+        columns:
+        - column:
+            name: "c_id"
+            type: "varchar(255)"
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: "pk_t_outbox_event"
+        - column:
+            name: "c_aggregate_id"
+            type: "varchar(255)"
+            constraints:
+              nullable: false
+        - column:
+            name: "c_event_type"
+            type: "varchar(100)"
+            constraints:
+              nullable: false
+        - column:
+            name: "c_payload"
+            type: "text"
+            constraints:
+              nullable: false
+        - column:
+            name: "c_created_at"
+            type: "timestamp"
+            constraints:
+              nullable: false
+        - column:
+            name: "c_published_at"
+            type: "timestamp"
+        - column:
+            name: "c_next_attempt_at"
+            type: "timestamp"
+        - column:
+            name: "c_attempts"
+            type: "int"
+            defaultValueNumeric: 0
+            constraints:
+              nullable: false
+        - column:
+            name: "c_last_error"
+            type: "text"
+        - column:
+            name: "c_status"
+            type: "varchar(30)"
+            constraints:
+              nullable: false
+        - column:
+            name: "c_version"
+            type: "bigint"
+            defaultValueNumeric: 0
+            constraints:
+              nullable: false
+        - column:
+            name: "c_deleted"
+            type: "boolean"
+            defaultValueBoolean: false
+            constraints:
+              nullable: false
+    - createIndex:
+        tableName: "t_outbox_event"
+        indexName: "idx_outbox_status_next_attempt"
+        columns:
+        - column:
+            name: "c_status"
+        - column:
+            name: "c_next_attempt_at"

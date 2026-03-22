@@ -2,25 +2,35 @@ package cm.domeni.authentis_users.e2e;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.Before;
+import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Properties;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.beans.factory.annotation.Value;
 
 public class DemoE2ESteps {
   private static final String KEYCLOAK_WEBHOOK_SECRET = "e2e-webhook-secret";
@@ -29,6 +39,8 @@ public class DemoE2ESteps {
   @LocalServerPort private int serverPort;
   @Autowired private JdbcClient jdbcClient;
   @Autowired private ObjectMapper objectMapper;
+  @Value("${spring.kafka.bootstrap-servers}") private String kafkaBootstrapServers;
+  @Value("${events.user-created.kafka.topic}") private String userCreatedTopic;
 
   private Map<String, Object> demoPayload;
   private Map<String, Object> userPayload;
@@ -39,6 +51,8 @@ public class DemoE2ESteps {
   private UUID lastCreatedDemoId;
   private UUID lastRegisteredUserId;
   private String authenticatedAccessToken;
+  private KafkaConsumer<String, String> kafkaConsumer;
+  private final List<String> kafkaMessages = new ArrayList<>();
 
   @Before
   public void resetDatabaseAndHttpClient() {
@@ -46,6 +60,16 @@ public class DemoE2ESteps {
     RestAssured.port = serverPort;
     jdbcClient.sql("DELETE FROM t_demo").update();
     jdbcClient.sql("DELETE FROM t_user").update();
+    jdbcClient.sql("DELETE FROM t_outbox_event").update();
+  }
+
+  @After
+  public void cleanupKafkaConsumer() {
+    if (kafkaConsumer != null) {
+      kafkaConsumer.close();
+      kafkaConsumer = null;
+    }
+    kafkaMessages.clear();
   }
 
   @Given("a demo payload with name {string}")
@@ -103,6 +127,13 @@ public class DemoE2ESteps {
     }
   }
 
+  @Given("I start listening to user created events")
+  public void iStartListeningToUserCreatedEvents() {
+    kafkaMessages.clear();
+    kafkaConsumer = createKafkaConsumer();
+    kafkaConsumer.subscribe(List.of(userCreatedTopic));
+  }
+
   @When("^I call GET /user as an authenticated user$")
   public void iCallGetUserAsAnAuthenticatedUser() {
     latestResponse =
@@ -120,6 +151,24 @@ public class DemoE2ESteps {
     assertTrue(
         users.stream().anyMatch(user -> expectedUserName.equals(user.get("userName"))),
         "Expected username '%s' in users response".formatted(expectedUserName));
+  }
+
+  @Then("a user created event should be published for username {string}")
+  public void aUserCreatedEventShouldBePublishedForUsername(String expectedUserName) {
+    assumeThat(kafkaConsumer).as("Kafka consumer must be initialized").isNotNull();
+    await()
+        .atMost(Duration.ofSeconds(15))
+        .pollInterval(Duration.ofMillis(300))
+        .untilAsserted(
+            () -> {
+              pollKafka();
+              boolean matched =
+                  kafkaMessages.stream()
+                      .anyMatch(payload -> matchesUserCreatedEvent(payload, expectedUserName));
+              assertThat(matched)
+                  .as("Expected USER_CREATED event for username '%s'".formatted(expectedUserName))
+                  .isTrue();
+            });
   }
 
   @Given("a role payload with name {string}")
@@ -366,6 +415,50 @@ public class DemoE2ESteps {
     } catch (Exception e) {
       throw new IllegalStateException(
           "Expected UUID body but got: " + latestResponse.getBody().asString(), e);
+    }
+  }
+
+  private KafkaConsumer<String, String> createKafkaConsumer() {
+    Properties props = new Properties();
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, "e2e-user-events-" + UUID.randomUUID());
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+    return new KafkaConsumer<>(props);
+  }
+
+  private void pollKafka() {
+    ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(500));
+    records.forEach(record -> kafkaMessages.add(record.value()));
+  }
+
+  private boolean matchesUserCreatedEvent(String payload, String expectedUserName) {
+    try {
+      var root = objectMapper.readTree(payload);
+      if (root == null || root.get("payload") == null) {
+        return false;
+      }
+      if (!"USER_CREATED".equals(root.get("eventType").asText())) {
+        return false;
+      }
+      var eventPayload = root.get("payload");
+      if (!expectedUserName.equals(eventPayload.get("username").asText())) {
+        return false;
+      }
+      if (lastRegisteredUserId != null
+          && !lastRegisteredUserId.toString().equals(eventPayload.get("id").asText())) {
+        return false;
+      }
+      return root.get("eventId") != null
+          && !root.get("eventId").asText().isBlank()
+          && root.get("occurredAt") != null
+          && !root.get("occurredAt").asText().isBlank()
+          && eventPayload.get("createdAt") != null
+          && !eventPayload.get("createdAt").asText().isBlank();
+    } catch (Exception e) {
+      return false;
     }
   }
 }

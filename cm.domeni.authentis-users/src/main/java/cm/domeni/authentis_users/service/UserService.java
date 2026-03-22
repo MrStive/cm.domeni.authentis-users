@@ -21,11 +21,13 @@ public class UserService {
   private final UserFetcher userFetcher;
   private final UserUpdater userUpdater;
   private final UserMapper userMapper;
+  private final UserOutboxService userOutboxService;
 
   @Transactional
   public UUID createUser(CreateUser userData)
       throws UserAlreadyExistException, UserCanNotCreateException {
     var createdUser = userFactory.create(userMapper.map(userData));
+    userOutboxService.enqueueUserCreated(createdUser);
     return createdUser.getId().toUuid();
   }
 

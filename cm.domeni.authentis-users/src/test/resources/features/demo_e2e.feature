@@ -21,6 +21,13 @@ Feature: Users and roles end-to-end
     Then the HTTP status should be 200
     And the users response should contain username "cucumber-user"
 
+  Scenario: Publish user created event to Kafka
+    Given I start listening to user created events
+    And a user payload with username "event-user" and email "event-user@example.test"
+    When I call POST /register
+    Then the HTTP status should be 201
+    And a user created event should be published for username "event-user"
+
   Scenario: Refresh token to obtain a new JWT
     Given a refresh token payload with token "mock-refresh-token"
     When I call POST /auth/refresh

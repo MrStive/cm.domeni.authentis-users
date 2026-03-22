@@ -9,9 +9,14 @@ spring:
     username: "${DB_USER:authentis-users}"
     password: "${DB_PASSWORD:change-me}"
   jpa:
-    hibernate:
-      ddl-auto: "validate"
     show-sql: true
+    generate-ddl: false
+    properties:
+      eclipselink.weaving: "false"
+      eclipselink.ddl-generation: "none"
+      eclipselink.target-database: "PostgreSQL"
+      eclipselink.logging.level: "WARNING"
+      eclipselink.logging.level.sql: "FINE"
   liquibase:
     change-log: "classpath:db/changelog/db.changelog-master.yaml"
   security:
@@ -20,6 +25,18 @@ spring:
         jwt:
           issuer-uri: "${ISSUER_URI:http://localhost:8080/realms/authentis-user}"
           jwk-set-uri: "${JWK_SET_URI:http://localhost:8080/realms/authentis-user/protocol/openid-connect/certs}"
+  kafka:
+    bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}"
+    producer:
+      key-serializer: "org.apache.kafka.common.serialization.StringSerializer"
+      value-serializer: "org.apache.kafka.common.serialization.StringSerializer"
+      acks: "all"
+      retries: 10
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        delivery.timeout.ms: 120000
+        linger.ms: 5
 logging:
   level:
     org.springframework.security: "INFO"
@@ -44,3 +61,12 @@ keycloak:
     webhook-enabled: "${KEYCLOAK_SYNC_WEBHOOK_ENABLED:false}"
     webhook-secret: "${KEYCLOAK_SYNC_WEBHOOK_SECRET:}"
     webhook-secret-header: "${KEYCLOAK_SYNC_WEBHOOK_SECRET_HEADER:X-Keycloak-Webhook-Secret}"
+events:
+  user-created:
+    kafka:
+      topic: "${USER_CREATED_KAFKA_TOPIC:authentis.user.created}"
+  outbox:
+    poll-interval-ms: "${OUTBOX_POLL_INTERVAL_MS:5000}"
+    batch-size: "${OUTBOX_BATCH_SIZE:50}"
+    max-retries: "${OUTBOX_MAX_RETRIES:10}"
+    retry-backoff-ms: "${OUTBOX_RETRY_BACKOFF_MS:5000}"

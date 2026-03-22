@@ -5,6 +5,7 @@ import cm.domeni.authentis_users.domain.demo.DemoFetcher;
 import cm.domeni.authentis_users.domain.demo.DemoRepository;
 import cm.domeni.authentis_users.domain.demo.impl.DemoFactoryImpl;
 import cm.domeni.authentis_users.domain.demo.impl.DemoFetcherImpl;
+import cm.domeni.authentis_users.domain.outbox.OutboxEventRepository;
 import cm.domeni.authentis_users.domain.role.RoleFactory;
 import cm.domeni.authentis_users.domain.role.imp.RoleFactoryImpl;
 import cm.domeni.authentis_users.domain.user.UserFactory;
@@ -16,9 +17,12 @@ import cm.domeni.authentis_users.domain.user.impl.UserFetcherImpl;
 import cm.domeni.authentis_users.domain.user.impl.UserUpdaterImpl;
 import cm.domeni.authentis_users.external.keycloak.KeycloakGateway;
 import cm.domeni.authentis_users.repository.DemoSpringRepository;
+import cm.domeni.authentis_users.repository.OutboxEventSpringRepository;
 import cm.domeni.authentis_users.repository.UserSpringRepository;
 import cm.domeni.authentis_users.repository.impl.DemoRepositoryImpl;
+import cm.domeni.authentis_users.repository.impl.OutboxEventRepositoryImpl;
 import cm.domeni.authentis_users.repository.impl.UserRepositoryImpl;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,13 +33,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class AuthentisUsersBeans {
 
   @Bean
-  public DemoFactory demoFactory(DemoRepository demoRepository) {
-    return new DemoFactoryImpl(demoRepository);
+  public DemoRepository demoRepository(DemoSpringRepository demoSpringRepository) {
+    return new DemoRepositoryImpl(demoSpringRepository);
   }
 
   @Bean
-  public DemoRepository demoRepository(DemoSpringRepository demoSpringRepository) {
-    return new DemoRepositoryImpl(demoSpringRepository);
+  public DemoFactory demoFactory(DemoRepository demoRepository) {
+    return new DemoFactoryImpl(demoRepository);
   }
 
   @Bean
@@ -46,6 +50,12 @@ public class AuthentisUsersBeans {
   @Bean
   public UserRepository userRepository(UserSpringRepository userSpringRepository) {
     return new UserRepositoryImpl(userSpringRepository);
+  }
+
+  @Bean
+  public OutboxEventRepository outboxEventRepository(
+      OutboxEventSpringRepository outboxEventSpringRepository, EntityManager entityManager) {
+    return new OutboxEventRepositoryImpl(outboxEventSpringRepository, entityManager);
   }
 
   @Bean
