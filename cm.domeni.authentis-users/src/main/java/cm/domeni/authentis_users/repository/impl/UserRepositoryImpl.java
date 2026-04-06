@@ -4,9 +4,11 @@ import cm.domeni.authentis_users.domain.user.User;
 import cm.domeni.authentis_users.domain.user.UserId;
 import cm.domeni.authentis_users.domain.user.UserRepository;
 import cm.domeni.authentis_users.repository.UserSpringRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 
 @RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
@@ -20,6 +22,16 @@ public class UserRepositoryImpl implements UserRepository {
   @Override
   public List<User> findAll() {
     return userSpringRepository.findAll();
+  }
+
+  @Override
+  public List<User> findAllByIds(Collection<UserId> userIds) {
+    return userSpringRepository.findAllById(userIds);
+  }
+
+  @Override
+  public List<UserId> findIdPage(int pageNumber, int pageSize) {
+    return userSpringRepository.findIdPage(PageRequest.of(pageNumber, pageSize));
   }
 
   @Override

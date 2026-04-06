@@ -33,9 +33,14 @@ keycloak:
     client-secret: "test-client-secret"
     reset-token-required-scope: "password:reset"
     read-timeout-seconds: 5
-events:
-  outbox:
-    poll-interval-ms: 300
-    batch-size: 20
-    max-retries: 3
-    retry-backoff-ms: 300
+kapita:
+  kafka:
+    outbox:
+      poll-interval-ms: 300
+      batch-size: 20
+      max-retries: 3
+      retry-backoff-ms: 300
+      topic-mappings:
+        USER_CREATED: "authentis.user.created"
+        USER_UPDATED: "authentis.user.updated"
+        USER_DEACTIVATED: "authentis.user.deactivated"

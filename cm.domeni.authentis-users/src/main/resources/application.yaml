@@ -61,12 +61,16 @@ keycloak:
     webhook-enabled: "${KEYCLOAK_SYNC_WEBHOOK_ENABLED:false}"
     webhook-secret: "${KEYCLOAK_SYNC_WEBHOOK_SECRET:}"
     webhook-secret-header: "${KEYCLOAK_SYNC_WEBHOOK_SECRET_HEADER:X-Keycloak-Webhook-Secret}"
-events:
-  user-created:
-    kafka:
-      topic: "${USER_CREATED_KAFKA_TOPIC:authentis.user.created}"
-  outbox:
-    poll-interval-ms: "${OUTBOX_POLL_INTERVAL_MS:5000}"
-    batch-size: "${OUTBOX_BATCH_SIZE:50}"
-    max-retries: "${OUTBOX_MAX_RETRIES:10}"
-    retry-backoff-ms: "${OUTBOX_RETRY_BACKOFF_MS:5000}"
+kapita:
+  kafka:
+    outbox:
+      enabled: "${OUTBOX_ENABLED:true}"
+      poll-interval-ms: "${OUTBOX_POLL_INTERVAL_MS:5000}"
+      batch-size: "${OUTBOX_BATCH_SIZE:50}"
+      max-retries: "${OUTBOX_MAX_RETRIES:10}"
+      retry-backoff-ms: "${OUTBOX_RETRY_BACKOFF_MS:5000}"
+      max-error-length: "${OUTBOX_MAX_ERROR_LENGTH:2000}"
+      topic-mappings:
+        USER_CREATED: "${USER_CREATED_KAFKA_TOPIC:authentis.user.created}"
+        USER_UPDATED: "${USER_UPDATED_KAFKA_TOPIC:authentis.user.updated}"
+        USER_DEACTIVATED: "${USER_DEACTIVATED_KAFKA_TOPIC:authentis.user.deactivated}"

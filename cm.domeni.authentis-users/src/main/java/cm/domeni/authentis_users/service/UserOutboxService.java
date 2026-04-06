@@ -1,8 +1,5 @@
 package cm.domeni.authentis_users.service;
 
-import cm.domeni.authentis_users.domain.outbox.OutboxEvent;
-import cm.domeni.authentis_users.domain.outbox.OutboxEventId;
-import cm.domeni.authentis_users.domain.outbox.OutboxEventRepository;
 import cm.domeni.authentis_users.domain.user.Email;
 import cm.domeni.authentis_users.domain.user.FirstName;
 import cm.domeni.authentis_users.domain.user.LastName;
@@ -12,6 +9,12 @@ import cm.domeni.authentis_users.event.dto.DomainEventType;
 import cm.domeni.authentis_users.event.dto.EmailAddressDTO;
 import cm.domeni.authentis_users.event.dto.UserCreatedEventDTO;
 import cm.domeni.authentis_users.event.dto.UserCreatedEventEnvelopeDTO;
+import cm.domeni.authentis_users.event.dto.UserDeactivatedEventDTO;
+import cm.domeni.authentis_users.event.dto.UserDeactivatedEventEnvelopeDTO;
+import cm.domeni.authentis_users.event.dto.UserUpdatedEventDTO;
+import cm.domeni.authentis_users.event.dto.UserUpdatedEventEnvelopeDTO;
+import com.domeni.kapita.kafka.outbox.domain.OutboxEventId;
+import com.domeni.kapita.kafka.outbox.service.OutboxService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -20,45 +23,88 @@ import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserOutboxService {
-  private final OutboxEventRepository outboxEventRepository;
+  private final OutboxService outboxService;
   private final ObjectMapper objectMapper;
 
   @Transactional
   public void enqueueUserCreated(User user) {
+    enqueueUserEvent(user, DomainEventType.USER_CREATED, this::serializeCreatedEnvelope);
+  }
+
+  @Transactional
+  public void enqueueUserUpdated(User user) {
+    enqueueUserEvent(user, DomainEventType.USER_UPDATED, this::serializeUpdatedEnvelope);
+  }
+
+  @Transactional
+  public void enqueueUserDeactivated(User user) {
+    enqueueUserEvent(user, DomainEventType.USER_DEACTIVATED, this::serializeDeactivatedEnvelope);
+  }
+
+  private void enqueueUserEvent(
+      User user, DomainEventType eventType, UserEventSerializer eventSerializer) {
     Objects.requireNonNull(user, "user");
     Objects.requireNonNull(user.getId(), "user id");
     OutboxEventId outboxEventId = new OutboxEventId(UUID.randomUUID());
     Instant now = Instant.now();
     LocalDateTime occurredAt = LocalDateTime.ofInstant(now, ZoneOffset.UTC);
-    UserCreatedEventDTO payload = toUserCreatedEventDto(user, occurredAt);
-    String serializedPayload = serializeEnvelope(outboxEventId, occurredAt, payload);
-    OutboxEvent outboxEvent =
-        OutboxEvent.pending(
-            outboxEventId,
-            user.getId().toUuid().toString(),
-            DomainEventType.USER_CREATED.toString(),
-            serializedPayload,
-            now);
-    outboxEventRepository.save(outboxEvent);
+    String serializedPayload = eventSerializer.serialize(user, outboxEventId, occurredAt);
+    outboxService.enqueue(
+        outboxEventId,
+        user.getId().toUuid().toString(),
+        eventType.toString(),
+        serializedPayload,
+        now);
   }
 
-  private String serializeEnvelope(
-      OutboxEventId outboxEventId, LocalDateTime occurredAt, UserCreatedEventDTO event) {
+  private String serializeCreatedEnvelope(
+      User user, OutboxEventId outboxEventId, LocalDateTime occurredAt) {
     UserCreatedEventEnvelopeDTO envelope = new UserCreatedEventEnvelopeDTO();
     envelope.setEventId(outboxEventId.toUUID());
     envelope.setEventType(DomainEventType.USER_CREATED);
     envelope.setOccurredAt(occurredAt);
-    envelope.setPayload(event);
+    envelope.setPayload(toUserCreatedEventDto(user, occurredAt));
+    return serializeEnvelope(user, DomainEventType.USER_CREATED, envelope);
+  }
+
+  private String serializeUpdatedEnvelope(
+      User user, OutboxEventId outboxEventId, LocalDateTime occurredAt) {
+    UserUpdatedEventEnvelopeDTO envelope = new UserUpdatedEventEnvelopeDTO();
+    envelope.setEventId(outboxEventId.toUUID());
+    envelope.setEventType(DomainEventType.USER_UPDATED);
+    envelope.setOccurredAt(occurredAt);
+    envelope.setPayload(toUserUpdatedEventDto(user));
+    return serializeEnvelope(user, DomainEventType.USER_UPDATED, envelope);
+  }
+
+  private String serializeDeactivatedEnvelope(
+      User user, OutboxEventId outboxEventId, LocalDateTime occurredAt) {
+    UserDeactivatedEventEnvelopeDTO envelope = new UserDeactivatedEventEnvelopeDTO();
+    envelope.setEventId(outboxEventId.toUUID());
+    envelope.setEventType(DomainEventType.USER_DEACTIVATED);
+    envelope.setOccurredAt(occurredAt);
+    envelope.setPayload(toUserDeactivatedEventDto(user));
+    return serializeEnvelope(user, DomainEventType.USER_DEACTIVATED, envelope);
+  }
+
+  private String serializeEnvelope(User user, DomainEventType eventType, Object envelope) {
     try {
       return objectMapper.writeValueAsString(envelope);
     } catch (JsonProcessingException ex) {
-      throw new IllegalStateException("Failed to serialize user created event", ex);
+      log.error(
+          "Failed to serialize user event type={} userId={}",
+          eventType,
+          user.getId() != null ? user.getId().getValue() : null,
+          ex);
+      throw new IllegalStateException("Failed to serialize %s event".formatted(eventType), ex);
     }
   }
 
@@ -74,6 +120,27 @@ public class UserOutboxService {
       dto.setEmail(emailAddress);
     }
     dto.setCreatedAt(occurredAt);
+    return dto;
+  }
+
+  private UserUpdatedEventDTO toUserUpdatedEventDto(User user) {
+    UserUpdatedEventDTO dto = new UserUpdatedEventDTO();
+    dto.setId(user.getId().toUuid());
+    dto.setUsername(value(user.getUserName()));
+    dto.setEnabled(!user.isDeleted());
+    dto.setFirstname(value(user.getFirstName()));
+    dto.setLastname(value(user.getLastName()));
+    EmailAddressDTO emailAddress = toEmailAddress(user.getEmail());
+    if (emailAddress != null) {
+      dto.setEmail(emailAddress);
+    }
+    return dto;
+  }
+
+  private UserDeactivatedEventDTO toUserDeactivatedEventDto(User user) {
+    UserDeactivatedEventDTO dto = new UserDeactivatedEventDTO();
+    dto.setId(user.getId().toUuid());
+    dto.setEnabled(false);
     return dto;
   }
 
@@ -96,5 +163,10 @@ public class UserOutboxService {
 
   private String value(LastName lastName) {
     return lastName != null ? lastName.getValue() : null;
+  }
+
+  @FunctionalInterface
+  private interface UserEventSerializer {
+    String serialize(User user, OutboxEventId outboxEventId, LocalDateTime occurredAt);
   }
 }
