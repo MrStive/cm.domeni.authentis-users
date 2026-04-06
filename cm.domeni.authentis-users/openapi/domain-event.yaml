@@ -93,15 +93,10 @@ components:
       type: "object"
       required:
         - "id"
-        - "firstname"
-        - "lastname"
-        - "phoneNumber"
-        - "email"
+        - "username"
+        - "enabled"
       properties:
         id:
-          type: "string"
-          format: "uuid"
-        picture:
           type: "string"
           format: "uuid"
         firstname:
@@ -109,10 +104,26 @@ components:
           description: "firstname of user"
         lastname:
           type: "string"
-        phoneNumber:
-          $ref: "#/components/schemas/PhoneNumberDTO"
+        username:
+          type: "string"
+          description: "username's user"
         email:
           $ref: "#/components/schemas/EmailAddressDTO"
+        enabled:
+          type: "boolean"
+          description: "active user"
+    UserDeactivatedEventDTO:
+      type: "object"
+      required:
+        - "id"
+        - "enabled"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+        enabled:
+          type: "boolean"
+          description: "active user"
     UserRolesAddedEventDTO:
       type: "object"
       required:
@@ -163,3 +174,43 @@ components:
           description: "timestamp when the event occurred"
         payload:
           $ref: "#/components/schemas/UserCreatedEventDTO"
+    UserUpdatedEventEnvelopeDTO:
+      type: "object"
+      required:
+        - "eventId"
+        - "eventType"
+        - "occurredAt"
+        - "payload"
+      properties:
+        eventId:
+          type: "string"
+          format: "uuid"
+          description: "unique event identifier"
+        eventType:
+          $ref: "#/components/schemas/DomainEventType"
+        occurredAt:
+          type: "string"
+          format: "date-time"
+          description: "timestamp when the event occurred"
+        payload:
+          $ref: "#/components/schemas/UserUpdatedEventDTO"
+    UserDeactivatedEventEnvelopeDTO:
+      type: "object"
+      required:
+        - "eventId"
+        - "eventType"
+        - "occurredAt"
+        - "payload"
+      properties:
+        eventId:
+          type: "string"
+          format: "uuid"
+          description: "unique event identifier"
+        eventType:
+          $ref: "#/components/schemas/DomainEventType"
+        occurredAt:
+          type: "string"
+          format: "date-time"
+          description: "timestamp when the event occurred"
+        payload:
+          $ref: "#/components/schemas/UserDeactivatedEventDTO"

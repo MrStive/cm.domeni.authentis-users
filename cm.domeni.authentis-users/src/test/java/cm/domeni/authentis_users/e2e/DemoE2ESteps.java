@@ -8,29 +8,30 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.cucumber.java.Before;
 import io.cucumber.java.After;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import jakarta.persistence.EntityManagerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Properties;
+import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.beans.factory.annotation.Value;
 
 public class DemoE2ESteps {
   private static final String KEYCLOAK_WEBHOOK_SECRET = "e2e-webhook-secret";
@@ -39,8 +40,13 @@ public class DemoE2ESteps {
   @LocalServerPort private int serverPort;
   @Autowired private JdbcClient jdbcClient;
   @Autowired private ObjectMapper objectMapper;
-  @Value("${spring.kafka.bootstrap-servers}") private String kafkaBootstrapServers;
-  @Value("${events.user-created.kafka.topic}") private String userCreatedTopic;
+  @Autowired private EntityManagerFactory entityManagerFactory;
+
+  @Value("${spring.kafka.bootstrap-servers}")
+  private String kafkaBootstrapServers;
+
+  @Value("${kapita.kafka.outbox.topic-mappings.USER_CREATED}")
+  private String userCreatedTopic;
 
   private Map<String, Object> demoPayload;
   private Map<String, Object> userPayload;
@@ -61,6 +67,11 @@ public class DemoE2ESteps {
     jdbcClient.sql("DELETE FROM t_demo").update();
     jdbcClient.sql("DELETE FROM t_user").update();
     jdbcClient.sql("DELETE FROM t_outbox_event").update();
+    entityManagerFactory.getCache().evictAll();
+    latestResponse = null;
+    lastCreatedDemoId = null;
+    lastRegisteredUserId = null;
+    authenticatedAccessToken = null;
   }
 
   @After
@@ -267,14 +278,22 @@ public class DemoE2ESteps {
   public void aRegisteredUserWithUsername(String userName) {
     aUserPayloadWithUsernameAndEmail(userName, "%s@example.test".formatted(userName));
     iCallPostRegister();
-    assertEquals(201, latestResponse.statusCode(), "User registration must succeed in setup");
+    assertEquals(
+        201,
+        latestResponse.statusCode(),
+        "User registration must succeed in setup. Response body: %s"
+            .formatted(latestResponse.getBody().asPrettyString()));
   }
 
   @Given("an existing role named {string}")
   public void anExistingRoleNamed(String roleName) {
     aRolePayloadWithName(roleName);
     iCallPostRoleWithScope("role:create");
-    assertEquals(201, latestResponse.statusCode(), "Role creation must succeed in setup");
+    assertEquals(
+        201,
+        latestResponse.statusCode(),
+        "Role creation must succeed in setup. Response body: %s"
+            .formatted(latestResponse.getBody().asPrettyString()));
   }
 
   @Given("Keycloak profile for this user is updated to username {string} and email {string}")
@@ -327,7 +346,10 @@ public class DemoE2ESteps {
 
   @Then("the HTTP status should be {int}")
   public void theHttpStatusShouldBe(int expectedStatus) {
-    assertEquals(expectedStatus, latestResponse.getStatusCode());
+    assertEquals(
+        expectedStatus,
+        latestResponse.getStatusCode(),
+        "Unexpected response body: %s".formatted(latestResponse.getBody().asPrettyString()));
   }
 
   @Then("the response should contain a valid UUID")

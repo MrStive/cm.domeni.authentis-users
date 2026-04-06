@@ -55,8 +55,43 @@ val errorProneVersion = "2.48.0"
 val nullAwayVersion = "0.13.1"
 tasks.withType<Test> {
     useJUnitPlatform()
+    jvmArgs("--enable-preview", "-Dnet.bytebuddy.experimental=true")
 }
 
+val nexusMavenPublicUrl =
+    providers
+        .gradleProperty("nexusMavenPublicUrl")
+        .orElse(providers.environmentVariable("NEXUS_MAVEN_PUBLIC_URL"))
+        .orElse(providers.environmentVariable("NEXUS_MAVEN_URL"))
+        .orElse(providers.environmentVariable("NEXUS_MAVEN_RELEASES_URL"))
+        .orElse(providers.environmentVariable("NEXUS_MAVEN_SNAPSHOTS_URL"))
+        .orNull
+
+val nexusUsername =
+    providers
+        .gradleProperty("nexusUsername")
+        .orElse(providers.environmentVariable("NEXUS_CREDENTIALS_USR"))
+        .orNull
+
+val nexusPassword =
+    providers
+        .gradleProperty("nexusPassword")
+        .orElse(providers.environmentVariable("NEXUS_CREDENTIALS_PSW"))
+        .orNull
+repositories {
+    mavenLocal()
+    mavenCentral()
+    if (!nexusMavenPublicUrl.isNullOrBlank()) {
+        maven {
+            url = uri(nexusMavenPublicUrl)
+            isAllowInsecureProtocol = nexusMavenPublicUrl.startsWith("http://")
+            credentials {
+                username = nexusUsername ?: ""
+                password = nexusPassword ?: ""
+            }
+        }
+    }
+}
 dependencyManagement {
     imports {
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:$springCloudVersion")
@@ -73,14 +108,14 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springframework.kafka:spring-kafka")
     implementation("org.liquibase:liquibase-core")
+    implementation("com.domeni.kapita:kapita-kafka-outbox-starter")
 
     // Security
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.keycloak:keycloak-admin-client:24.0.4")
-    implementation("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0") // Added for Keycloak SDK
+    implementation("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
     testImplementation("org.springframework.security:spring-security-test")
 
     // kafka
@@ -176,7 +211,6 @@ tasks.test {
     filter {
         excludeTestsMatching("cm.domeni.authentis_users.e2e.*")
     }
-    jvmArgs("--enable-preview")
 }
 
 tasks.register<Test>("dataTest") {
@@ -188,7 +222,6 @@ tasks.register<Test>("dataTest") {
     useJUnitPlatform {
         includeTags("data")
     }
-    jvmArgs("--enable-preview")
 }
 
 tasks.register<Test>("e2eTest") {
@@ -202,7 +235,6 @@ tasks.register<Test>("e2eTest") {
     filter {
         includeTestsMatching("cm.domeni.authentis_users.e2e.CucumberE2ETest")
     }
-    jvmArgs("--enable-preview")
 }
 
 interface InjectedExecOps {

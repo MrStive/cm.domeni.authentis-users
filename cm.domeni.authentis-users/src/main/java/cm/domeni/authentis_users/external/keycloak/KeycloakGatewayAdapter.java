@@ -14,7 +14,6 @@ import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -305,27 +304,20 @@ public class KeycloakGatewayAdapter implements KeycloakGateway {
   }
 
   @Override
-  public List<KeycloakUserSnapshot> fetchAllUsers(int pageSize) {
+  public List<KeycloakUserSnapshot> fetchUsersPage(int offset, int pageSize) {
     String operation = "fetch users";
     int normalizedPageSize = Math.max(1, pageSize);
-    List<KeycloakUserSnapshot> users = new ArrayList<>();
-    int offset = 0;
 
     try {
-      while (true) {
-        List<UserRepresentation> page =
-            keycloakAdminClient.realm(targetRealm).users().list(offset, normalizedPageSize);
-        if (page == null || page.isEmpty()) {
-          return users;
-        }
-
-        page.stream().map(this::toUserSnapshot).flatMap(Optional::stream).forEach(users::add);
-
-        if (page.size() < normalizedPageSize) {
-          return users;
-        }
-        offset += normalizedPageSize;
+      List<UserRepresentation> page =
+          keycloakAdminClient
+              .realm(targetRealm)
+              .users()
+              .list(Math.max(0, offset), normalizedPageSize);
+      if (page == null || page.isEmpty()) {
+        return List.of();
       }
+      return page.stream().map(this::toUserSnapshot).flatMap(Optional::stream).toList();
     } catch (ClientErrorException e) {
       int status = statusCode(e.getResponse());
       throw keycloakError(operation, status, "Failed to fetch Keycloak users", e);
