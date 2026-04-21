@@ -1,0 +1,47 @@
+# Version Control
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.iml
+.project
+.classpath
+.settings/
+
+# Gradle cache (pas le build output !)
+.gradle/
+
+# Runtime
+.maven/
+
+# Documentation
+docs/
+
+# Tests
+src/test/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+Jenkinsfile
+
+# Misc
+*.log
+*.tmp
+.cache/
