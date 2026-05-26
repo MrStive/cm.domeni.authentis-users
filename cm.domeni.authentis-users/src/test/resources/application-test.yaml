@@ -2,6 +2,11 @@
 spring:
   application:
     name: "authentis-users"
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
   jpa:
     hibernate:
       ddl-auto: "validate"
@@ -10,6 +15,9 @@ spring:
   datasource:
     url: "jdbc:tc:postgresql:16-alpine:///test"
     driver-class-name: "org.testcontainers.jdbc.ContainerDatabaseDriver"
+eureka:
+  client:
+    enabled: false
 keycloak:
   admin-client:
     server-url: "http://localhost:8080/realms/"

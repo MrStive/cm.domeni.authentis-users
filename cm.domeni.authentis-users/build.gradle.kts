@@ -44,7 +44,7 @@ val kapitaPlatformVersion =
     providers
         .gradleProperty("kapitaPlatformVersion")
         .orElse(providers.environmentVariable("KAPITA_PLATFORM_VERSION"))
-        .orElse("0.1.1-SNAPSHOT")
+        .orElse("0.1.2-SNAPSHOT")
         .get()
 val springCloudVersion = "2024.0.3"
 val testContainerVersion = "1.20.4"
@@ -107,6 +107,7 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.liquibase:liquibase-core")
     implementation("com.domeni.kapita:kapita-kafka-outbox-starter")
