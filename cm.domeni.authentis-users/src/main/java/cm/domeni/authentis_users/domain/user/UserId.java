@@ -1,6 +1,5 @@
 package cm.domeni.authentis_users.domain.user;
 
-import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
@@ -11,7 +10,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@Embeddable
 public class UserId implements Serializable {
 
   private String value;

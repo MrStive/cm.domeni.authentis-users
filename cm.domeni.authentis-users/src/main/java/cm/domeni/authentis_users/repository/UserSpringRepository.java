@@ -14,6 +14,6 @@ import org.springframework.stereotype.Repository;
 public interface UserSpringRepository extends JpaRepository<User, UserId> {
   Optional<User> findByUserName(UserName userName);
 
-  @Query("select u.id from User u order by u.id.value")
+  @Query("select u.id from User u order by u.id")
   List<UserId> findIdPage(Pageable pageable);
 }
