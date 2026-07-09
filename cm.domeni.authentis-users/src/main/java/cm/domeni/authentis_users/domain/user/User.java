@@ -22,8 +22,9 @@ import lombok.experimental.FieldNameConstants;
 public class User extends SoftDeleteJpaEntity<UserId> {
 
   @Builder.Default
-  @EmbeddedId
-  @AttributeOverride(name = "value", column = @Column(name = "c_id"))
+  @Id
+  @Column(name = "c_id")
+  @Convert(converter = UserIdJpaConverter.class)
   private UserId id = new UserId();
 
   @Embedded
