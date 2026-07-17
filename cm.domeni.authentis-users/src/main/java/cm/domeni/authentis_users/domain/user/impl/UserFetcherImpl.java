@@ -4,6 +4,7 @@ import cm.domeni.authentis_users.domain.user.User;
 import cm.domeni.authentis_users.domain.user.UserFetcher;
 import cm.domeni.authentis_users.domain.user.UserId;
 import cm.domeni.authentis_users.domain.user.UserRepository;
+import cm.domeni.authentis_users.exception.NotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 
@@ -18,6 +19,8 @@ public class UserFetcherImpl implements UserFetcher {
 
   @Override
   public User loadUser(UserId id) {
-    return userRepository.findById(id).orElseThrow();
+    return userRepository
+        .findById(id)
+        .orElseThrow(() -> new NotFoundException("User not found with id: " + id.getValue()));
   }
 }

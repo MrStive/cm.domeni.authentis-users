@@ -178,6 +178,34 @@ paths:
           description: "Unauthorized"
         "404":
           description: "User not found"
+  /users/{userId}:
+    get:
+      tags:
+      - "User"
+      summary: "get user by id"
+      description: "get user details by their unique identifier"
+      operationId: "fetchUserById"
+      parameters:
+      - in: "path"
+        name: "userId"
+        required: true
+        schema:
+          type: "string"
+          format: "uuid"
+        description: "The user ID"
+      security:
+      - bearerAuth: []
+      responses:
+        "200":
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDTO"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "User not found"
   /role:
     post:
       tags:

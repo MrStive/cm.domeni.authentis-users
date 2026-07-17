@@ -2,6 +2,7 @@ package cm.domeni.authentis_users.service;
 
 import cm.domeni.authentis_users.domain.user.UserFactory;
 import cm.domeni.authentis_users.domain.user.UserFetcher;
+import cm.domeni.authentis_users.domain.user.UserId;
 import cm.domeni.authentis_users.domain.user.UserUpdater;
 import cm.domeni.authentis_users.dto.CreateUser;
 import cm.domeni.authentis_users.dto.UserDTO;
@@ -42,6 +43,12 @@ public class UserService {
   @Transactional(readOnly = true)
   public List<UserDTO> fetchAllUsers() {
     return userFetcher.loadAllUsers().stream().map(userMapper::map).toList();
+  }
+
+  @Transactional(readOnly = true)
+  public UserDTO fetchUserById(UUID userId) {
+    var user = userFetcher.loadUser(new UserId(userId));
+    return userMapper.map(user);
   }
 
   @Transactional
