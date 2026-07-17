@@ -89,6 +89,33 @@ class UserServiceTest {
   }
 
   @Test
+  void shouldFetchUserById() {
+    var userFetcher = new StubUserFetcher();
+    var userMapper = new StubUserMapper();
+    var userService =
+        new UserService(
+            new StubUserFactory(),
+            userFetcher,
+            new StubUserUpdater(),
+            userMapper,
+            new RecordingUserOutboxService(),
+            new RecordingKeycloakGateway());
+
+    UUID userId = UUID.randomUUID();
+    var user = User.builder().id(new UserId(userId)).build();
+    user.setUserName(new UserName("john_doe"));
+
+    var expectedDto = new UserDTO().id(userId).userName("john_doe");
+
+    userFetcher.foundUser = user;
+    userMapper.mappedUserDto = expectedDto;
+
+    UserDTO result = userService.fetchUserById(userId);
+
+    assertThat(result).isEqualTo(expectedDto);
+  }
+
+  @Test
   void shouldCompensateKeycloakUserWhenEventPreparationFails() {
     StubUserFactory userFactory = new StubUserFactory();
     StubUserMapper userMapper = new StubUserMapper();
@@ -132,6 +159,8 @@ class UserServiceTest {
   }
 
   private static final class StubUserFetcher implements UserFetcher {
+    private User foundUser;
+
     @Override
     public List<User> loadAllUsers() {
       return List.of();
@@ -139,7 +168,7 @@ class UserServiceTest {
 
     @Override
     public User loadUser(UserId id) {
-      throw new UnsupportedOperationException("Not needed in this test");
+      return foundUser;
     }
   }
 
@@ -153,6 +182,7 @@ class UserServiceTest {
 
   private static final class StubUserMapper implements UserMapper {
     private UserData mappedCreateUser;
+    private UserDTO mappedUserDto;
 
     @Override
     public UserData map(CreateUser createUser) {
@@ -161,7 +191,7 @@ class UserServiceTest {
 
     @Override
     public UserDTO map(User user) {
-      throw new UnsupportedOperationException("Not needed in this test");
+      return mappedUserDto;
     }
   }
 

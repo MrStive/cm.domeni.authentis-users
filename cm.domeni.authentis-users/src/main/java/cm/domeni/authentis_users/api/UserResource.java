@@ -27,6 +27,11 @@ public class UserResource implements UserApi {
   }
 
   @Override
+  public ResponseEntity<UserDTO> fetchUserById(UUID userId) {
+    return ResponseEntity.ok(userService.fetchUserById(userId));
+  }
+
+  @Override
   public ResponseEntity<Void> addRoleToUser(UUID userId, String roleName) {
     userService.addRoleToUser(userId, roleName);
     return ResponseEntity.noContent().build();

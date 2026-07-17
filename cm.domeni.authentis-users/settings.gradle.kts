@@ -1,4 +1,4 @@
-rootProject.name = "cm.domeni.authentis-users"
+rootProject.name = "authentis-users-service"
 
 val defaultKapitaPlatformLibsDir = file("../../cm.domeni.kapita/platform-libs")
 val kapitaPlatformLibsDir =

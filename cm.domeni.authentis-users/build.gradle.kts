@@ -25,7 +25,7 @@ application {
 }
 
 group = "cm.domeni.authentis-users"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.6-SNAPSHOT"
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
@@ -333,14 +333,18 @@ sourceSets.main
     )
 
 jib {
-    val imageNamePrefix = System.getenv("NEXUS_DOCKER_REGISTRY_URL") ?: ""
+    val imageNamePrefix = System.getenv("NEXUS_DOCKER_REGISTRY_URL") ?: "ghcr.io/mrstive"
     val nexusUsername = System.getenv("NEXUS_CREDENTIALS_USR") ?: ""
     val nexusPassword = System.getenv("NEXUS_CREDENTIALS_PSW") ?: ""
     from {
         image = "eclipse-temurin:25-jdk"
     }
     to {
-        image = "$imageNamePrefix/${project.name}"
+        if (imageNamePrefix.isBlank()) {
+            image = project.name
+        } else {
+            image = "$imageNamePrefix/${project.name}"
+        }
         tags = setOf("${project.version}")
         auth {
             username = nexusUsername
@@ -348,8 +352,10 @@ jib {
         }
     }
     container {
+        mainClass = "cm.domeni.authentis_users.AuthentisUsersApplication"
         creationTime = "USE_CURRENT_TIMESTAMP"
         jvmFlags = listOf("--enable-preview")
+        extraClasspath = listOf("/opt/liquibase-external")
     }
 }
 
@@ -357,7 +363,7 @@ spotless {
     java {
         targetExclude("build/**")
         toggleOffOn()
-        googleJavaFormat("1.25.2")
+        googleJavaFormat("1.30.0")
             .reflowLongStrings()
             .formatJavadoc(true)
             .reorderImports(true)
@@ -376,7 +382,7 @@ spotless {
 
     yaml {
         targetExclude("build/**")
-        target("src/*/resources/**/*.yaml", "src/*/resources/**/*.yml", "openapi/main.yaml")
+        target("src/*/resources/**/*.yaml", "src/*/resources/**/*.yml", "specs/openapi/main.yaml")
         targetExclude("src/test/resources/docker-compose.yml")
         jackson()
             .feature("ORDER_MAP_ENTRIES_BY_KEYS", true)
